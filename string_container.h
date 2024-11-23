@@ -16,11 +16,11 @@ typedef enum
 
 typedef struct
 {
-    char *str;
+    uint8_t *str;
     size_t len;
 } string_t;
 
-string_t conv_to_string(char *str)
+string_t conv_to_string(uint8_t *str)
 {
     return (string_t){.str = str, .len = strlen(str)};
 }
@@ -32,7 +32,7 @@ string_error_t strip_left(string_t *string)
         return NULL_STRING;
     }
 
-    char *str = string->str;
+    uint8_t *str = string->str;
     size_t len = string->len;
 
     for (size_t i = 0; i < len; i++)
@@ -63,7 +63,7 @@ string_error_t strip_right(string_t *string)
         return NULL_STRING;
     }
 
-    char *str = string->str;
+    uint8_t *str = string->str;
     size_t len = string->len;
 
     for (size_t i = len - 1; i >= 0; i--)
@@ -79,6 +79,17 @@ string_error_t strip_right(string_t *string)
     }
 
     return SUCCESS;
+}
+
+string_error_t strip(string_t *string)
+{
+    string_error_t error = strip_left(string);
+    if (error != SUCCESS)
+    {
+        return error;
+    }
+
+    return strip_right(string);
 }
 
 #endif /* C0F80EE6_E721_4FCE_8867_4EA72DC18A30 */
