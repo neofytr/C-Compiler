@@ -45,7 +45,8 @@ typedef struct
 static const keyword_map_t KEYWORDS[] = {
     {"int", TOKEN_KEYWORD_INT},
     {"void", TOKEN_KEYWORD_VOID},
-    {"return", TOKEN_KEYWORD_RETURN}};
+    {"return", TOKEN_KEYWORD_RETURN},
+};
 
 static const size_t KEYWORD_COUNT = sizeof(KEYWORDS) / sizeof(KEYWORDS[0]);
 
@@ -170,7 +171,7 @@ static bool lex_identifier(lexer_t *lexer, token_list_t *list)
     {
         if (is_digit(peek(lexer)) && !has_error)
         {
-            has_error = true; 
+            has_error = true;
         }
         buffer[length++] = peek(lexer);
         advance_lexer(lexer);
@@ -197,7 +198,7 @@ static bool lex_number(lexer_t *lexer, token_list_t *list)
     size_t length = 0;
     bool has_error = false;
     bool last_was_underscore = false;
-    char error_type[64] = {0}; \
+    char error_type[64] = {0};
 
     if (peek(lexer) == '-')
     {
