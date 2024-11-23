@@ -63,6 +63,22 @@ typedef struct
     size_t column;
 } lexer_t;
 
+static inline bool is_alpha(uint8_t c);
+static inline bool is_digit(uint8_t c);
+static inline bool is_identifier_start(uint8_t c);
+static inline bool is_identifier_part(uint8_t c);
+static inline bool is_whitespace(uint8_t c);
+static void advance_lexer(lexer_t *lexer);
+static inline uint8_t peek(lexer_t *lexer);
+static token_type_t check_keyword(const char *value);
+static bool add_token(token_list_t *list, const char *value, token_type_t type, size_t line, size_t column);
+static bool lex_identifier(lexer_t *lexer, token_list_t *list);
+static bool lex_number(lexer_t *lexer, token_list_t *list);
+static bool lex_symbol(lexer_t *lexer, token_list_t *list);
+static bool lex_source(const uint8_t *source, token_list_t *list);
+static uint8_t *read_source_file(const char *filename, size_t *file_size);
+static const char *token_type_to_string(token_type_t type);
+
 static inline bool is_alpha(uint8_t c)
 {
     return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
@@ -142,26 +158,35 @@ static bool lex_identifier(lexer_t *lexer, token_list_t *list)
     size_t start_column = lexer->column;
     char buffer[MAX_TOKEN_LENGTH] = {0};
     size_t length = 0;
+    bool has_error = false;
 
     if (!is_identifier_start(peek(lexer)))
     {
         return false;
     }
 
-    while (is_identifier_part(peek(lexer)) && length < MAX_TOKEN_LENGTH - 1)
+    // First, scan the complete token
+    while ((is_identifier_part(peek(lexer)) || is_digit(peek(lexer))) &&
+           length < MAX_TOKEN_LENGTH - 1)
     {
+        if (is_digit(peek(lexer)) && !has_error)
+        {
+            has_error = true; // Mark as error but continue scanning
+        }
         buffer[length++] = peek(lexer);
         advance_lexer(lexer);
     }
 
-    if (is_digit(peek(lexer)))
+    buffer[length] = '\0';
+
+    // Now report error if invalid
+    if (has_error)
     {
-        fprintf(stderr, "Error at line %zu, column %zu: Invalid identifier (contains digits)\n",
-                lexer->line, lexer->column);
+        fprintf(stderr, "Error at line %zu, column %zu: Invalid identifier '%s' (contains digits)\n",
+                lexer->line, start_column, buffer);
         return false;
     }
 
-    buffer[length] = '\0';
     token_type_t type = check_keyword(buffer);
     return add_token(list, buffer, type, lexer->line, start_column);
 }
@@ -172,6 +197,9 @@ static bool lex_number(lexer_t *lexer, token_list_t *list)
     size_t start_column = lexer->column;
     char buffer[MAX_TOKEN_LENGTH] = {0};
     size_t length = 0;
+    bool has_error = false;
+    bool last_was_underscore = false;
+    char error_type[64] = {0}; // To store the type of error
 
     if (peek(lexer) == '-')
     {
@@ -179,18 +207,17 @@ static bool lex_number(lexer_t *lexer, token_list_t *list)
         advance_lexer(lexer);
         if (!is_digit(peek(lexer)))
         {
-            fprintf(stderr, "Error at line %zu, column %zu: Expected digit after minus sign\n",
-                    lexer->line, lexer->column);
-            return false;
+            has_error = true;
+            strncpy(error_type, "Expected digit after minus sign", sizeof(error_type) - 1);
         }
     }
 
-    if (!is_digit(peek(lexer)))
+    if (!is_digit(peek(lexer)) && !has_error)
     {
         return false;
     }
 
-    bool last_was_underscore = false;
+    // Scan the complete token first
     while (length < MAX_TOKEN_LENGTH - 1)
     {
         if (is_digit(peek(lexer)))
@@ -201,36 +228,46 @@ static bool lex_number(lexer_t *lexer, token_list_t *list)
         }
         else if (peek(lexer) == '_')
         {
-            if (last_was_underscore)
+            if (last_was_underscore && !has_error)
             {
-                fprintf(stderr, "Error at line %zu, column %zu: Cannot have consecutive underscores in number\n",
-                        lexer->line, lexer->column);
-                return false;
+                has_error = true;
+                strncpy(error_type, "Cannot have consecutive underscores in number", sizeof(error_type) - 1);
             }
             buffer[length++] = peek(lexer);
             advance_lexer(lexer);
             last_was_underscore = true;
+        }
+        else if (is_alpha(peek(lexer)) || peek(lexer) == '-')
+        {
+            if (!has_error)
+            {
+                has_error = true;
+                strncpy(error_type, "Invalid number format", sizeof(error_type) - 1);
+            }
+            buffer[length++] = peek(lexer);
+            advance_lexer(lexer);
         }
         else
         {
             break;
         }
     }
-    if (last_was_underscore)
-    {
-        fprintf(stderr, "Error at line %zu, column %zu: Number cannot end with underscore\n",
-                lexer->line, lexer->column - 1);
-        return false;
-    }
-
-    if (is_alpha(peek(lexer)) || peek(lexer) == '_' || peek(lexer) == '-')
-    {
-        fprintf(stderr, "Error at line %zu, column %zu: Invalid number format\n",
-                lexer->line, lexer->column);
-        return false;
-    }
 
     buffer[length] = '\0';
+
+    if (last_was_underscore && !has_error)
+    {
+        has_error = true;
+        strncpy(error_type, "Number cannot end with underscore", sizeof(error_type) - 1);
+    }
+
+    if (has_error)
+    {
+        fprintf(stderr, "Error at line %zu, column %zu: %s '%s'\n",
+                lexer->line, start_column, error_type, buffer);
+        return false;
+    }
+
     return add_token(list, buffer, TOKEN_CONSTANT, lexer->line, start_column);
 }
 

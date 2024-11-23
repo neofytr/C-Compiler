@@ -22,7 +22,7 @@ typedef struct
 
 string_t conv_to_string(uint8_t *str)
 {
-    return (string_t){.str = str, .len = strlen(str)};
+    return (string_t){.str = str, .len = strlen((const char *)str)};
 }
 
 string_error_t strip_left(string_t *string)
