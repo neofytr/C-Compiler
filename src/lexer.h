@@ -165,13 +165,12 @@ static bool lex_identifier(lexer_t *lexer, token_list_t *list)
         return false;
     }
 
-    // First, scan the complete token
     while ((is_identifier_part(peek(lexer)) || is_digit(peek(lexer))) &&
            length < MAX_TOKEN_LENGTH - 1)
     {
         if (is_digit(peek(lexer)) && !has_error)
         {
-            has_error = true; // Mark as error but continue scanning
+            has_error = true; 
         }
         buffer[length++] = peek(lexer);
         advance_lexer(lexer);
@@ -179,7 +178,6 @@ static bool lex_identifier(lexer_t *lexer, token_list_t *list)
 
     buffer[length] = '\0';
 
-    // Now report error if invalid
     if (has_error)
     {
         fprintf(stderr, "Error at line %zu, column %zu: Invalid identifier '%s' (contains digits)\n",
@@ -199,7 +197,7 @@ static bool lex_number(lexer_t *lexer, token_list_t *list)
     size_t length = 0;
     bool has_error = false;
     bool last_was_underscore = false;
-    char error_type[64] = {0}; // To store the type of error
+    char error_type[64] = {0}; \
 
     if (peek(lexer) == '-')
     {
@@ -217,7 +215,6 @@ static bool lex_number(lexer_t *lexer, token_list_t *list)
         return false;
     }
 
-    // Scan the complete token first
     while (length < MAX_TOKEN_LENGTH - 1)
     {
         if (is_digit(peek(lexer)))
