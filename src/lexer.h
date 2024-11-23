@@ -109,7 +109,7 @@ static void advance_lexer(lexer_t *lexer)
     if (lexer->input[lexer->position] == '\n')
     {
         lexer->line++;
-        lexer->column = 0;
+        lexer->column = 1;
     }
     else
     {
@@ -309,7 +309,7 @@ static bool lex_source(const uint8_t *source, token_list_t *list)
         .input = source,
         .position = 0,
         .line = 1,
-        .column = 0};
+        .column = 1};
 
     while (peek(&lexer) != '\0')
     {
