@@ -15,17 +15,35 @@
 
 typedef enum
 {
-    TOKEN_OPENING_BRACE,  // {
-    TOKEN_CLOSING_BRACE,  // }
-    TOKEN_OPENING_PAREN,  // (
-    TOKEN_CLOSING_PAREN,  // )
-    TOKEN_KEYWORD_INT,    // int
-    TOKEN_KEYWORD_VOID,   // void
-    TOKEN_KEYWORD_RETURN, // return
-    TOKEN_IDENTIFIER,     // [a-zA-Z_][a-zA-Z_]*
-    TOKEN_SEMICOLON,      // ;
-    TOKEN_CONSTANT,       // [0-9]+(-[0-9]+)*
-    TOKEN_ERROR           // For error reporting
+    TOKEN_OPENING_BRACE,          // {
+    TOKEN_CLOSING_BRACE,          // }
+    TOKEN_OPENING_PAREN,          // (
+    TOKEN_CLOSING_PAREN,          // )
+    TOKEN_KEYWORD_INT,            // int
+    TOKEN_KEYWORD_VOID,           // void
+    TOKEN_KEYWORD_RETURN,         // return
+    TOKEN_KEYWORD_IF,             // if
+    TOKEN_KEYWORD_ELSE,           // else
+    TOKEN_KEYWORD_WHILE,          // while
+    TOKEN_KEYWORD_FOR,            // for
+    TOKEN_KEYWORD_BREAK,          // break
+    TOKEN_KEYWORD_CONTINUE,       // continue
+    TOKEN_KEYWORD_CONST,          // const
+    TOKEN_IDENTIFIER,             // [a-zA-Z_][a-zA-Z_]*
+    TOKEN_SEMICOLON,              // ;
+    TOKEN_CONSTANT,               // [0-9]+(-[0-9]+)*
+    TOKEN_OPERATOR_PLUS,          // +
+    TOKEN_OPERATOR_MINUS,         // -
+    TOKEN_OPERATOR_MUL,           // *
+    TOKEN_OPERATOR_DIV,           // /
+    TOKEN_OPERATOR_ASSIGN,        // =
+    TOKEN_OPERATOR_EQUAL,         // ==
+    TOKEN_OPERATOR_NOT_EQUAL,     // !=
+    TOKEN_OPERATOR_LESS,          // <
+    TOKEN_OPERATOR_LESS_EQUAL,    // <=
+    TOKEN_OPERATOR_GREATER,       // >
+    TOKEN_OPERATOR_GREATER_EQUAL, // >=
+    TOKEN_ERROR                   // For error reporting
 } token_type_t;
 
 typedef struct
@@ -46,6 +64,13 @@ static const keyword_map_t KEYWORDS[] = {
     {"int", TOKEN_KEYWORD_INT},
     {"void", TOKEN_KEYWORD_VOID},
     {"return", TOKEN_KEYWORD_RETURN},
+    {"if", TOKEN_KEYWORD_IF},
+    {"else", TOKEN_KEYWORD_ELSE},
+    {"while", TOKEN_KEYWORD_WHILE},
+    {"for", TOKEN_KEYWORD_FOR},
+    {"break", TOKEN_KEYWORD_BREAK},
+    {"continue", TOKEN_KEYWORD_CONTINUE},
+    {"const", TOKEN_KEYWORD_CONST},
 };
 
 static const size_t KEYWORD_COUNT = sizeof(KEYWORDS) / sizeof(KEYWORDS[0]);
@@ -70,6 +95,7 @@ static inline bool is_identifier_start(uint8_t c);
 static inline bool is_identifier_part(uint8_t c);
 static inline bool is_whitespace(uint8_t c);
 static void advance_lexer(lexer_t *lexer);
+static void retreat_lexer(lexer_t *lexer);
 static inline uint8_t peek(lexer_t *lexer);
 static token_type_t check_keyword(const char *value);
 static bool add_token(token_list_t *list, const char *value, token_type_t type, size_t line, size_t column);
@@ -117,6 +143,32 @@ static void advance_lexer(lexer_t *lexer)
         lexer->column++;
     }
     lexer->position++;
+}
+
+static void retreat_lexer(lexer_t *lexer)
+{
+    if (lexer->position == 0)
+    {
+        return;
+    }
+
+    lexer->position--;
+
+    if (lexer->input[lexer->position] == '\n')
+    {
+        lexer->line--;
+        lexer->column = 1;
+        size_t temp_pos = lexer->position - 1;
+        while (temp_pos > 0 && lexer->input[temp_pos] != '\n')
+        {
+            lexer->column++;
+            temp_pos--;
+        }
+    }
+    else
+    {
+        lexer->column--;
+    }
 }
 
 static inline uint8_t peek(lexer_t *lexer)
@@ -271,7 +323,7 @@ static bool lex_number(lexer_t *lexer, token_list_t *list)
 
 static bool lex_symbol(lexer_t *lexer, token_list_t *list)
 {
-    char symbol[2] = {peek(lexer), '\0'};
+    char symbol[3] = {peek(lexer), '\0', '\0'}; // Support for two-character operators
     token_type_t type;
     bool valid = true;
 
@@ -291,6 +343,70 @@ static bool lex_symbol(lexer_t *lexer, token_list_t *list)
         break;
     case ';':
         type = TOKEN_SEMICOLON;
+        break;
+    case '+':
+        type = TOKEN_OPERATOR_PLUS;
+        break;
+    case '-':
+        type = TOKEN_OPERATOR_MINUS;
+        break;
+    case '*':
+        type = TOKEN_OPERATOR_MUL;
+        break;
+    case '/':
+        type = TOKEN_OPERATOR_DIV;
+        break;
+    case '=':
+        advance_lexer(lexer); // Lookahead for ==
+        if (peek(lexer) == '=')
+        {
+            symbol[1] = '=';
+            type = TOKEN_OPERATOR_EQUAL;
+        }
+        else
+        {
+            type = TOKEN_OPERATOR_ASSIGN;
+            retreat_lexer(lexer); // Retract if no ==
+        }
+        break;
+    case '!':
+        advance_lexer(lexer); // Lookahead for !=
+        if (peek(lexer) == '=')
+        {
+            symbol[1] = '=';
+            type = TOKEN_OPERATOR_NOT_EQUAL;
+        }
+        else
+        {
+            valid = false; // '!' alone is not valid in this grammar
+            retreat_lexer(lexer);
+        }
+        break;
+    case '<':
+        advance_lexer(lexer); // Lookahead for <=
+        if (peek(lexer) == '=')
+        {
+            symbol[1] = '=';
+            type = TOKEN_OPERATOR_LESS_EQUAL;
+        }
+        else
+        {
+            type = TOKEN_OPERATOR_LESS;
+            retreat_lexer(lexer);
+        }
+        break;
+    case '>':
+        advance_lexer(lexer); // Lookahead for >=
+        if (peek(lexer) == '=')
+        {
+            symbol[1] = '=';
+            type = TOKEN_OPERATOR_GREATER_EQUAL;
+        }
+        else
+        {
+            type = TOKEN_OPERATOR_GREATER;
+            retreat_lexer(lexer);
+        }
         break;
     default:
         valid = false;
@@ -421,12 +537,48 @@ static const char *token_type_to_string(token_type_t type)
         return "KEYWORD_VOID";
     case TOKEN_KEYWORD_RETURN:
         return "KEYWORD_RETURN";
+    case TOKEN_KEYWORD_IF:
+        return "KEYWORD_IF";
+    case TOKEN_KEYWORD_ELSE:
+        return "KEYWORD_ELSE";
+    case TOKEN_KEYWORD_WHILE:
+        return "KEYWORD_WHILE";
+    case TOKEN_KEYWORD_FOR:
+        return "KEYWORD_FOR";
+    case TOKEN_KEYWORD_BREAK:
+        return "KEYWORD_BREAK";
+    case TOKEN_KEYWORD_CONTINUE:
+        return "KEYWORD_CONTINUE";
+    case TOKEN_KEYWORD_CONST:
+        return "KEYWORD_CONST";
     case TOKEN_IDENTIFIER:
         return "IDENTIFIER";
     case TOKEN_SEMICOLON:
         return "SEMICOLON";
     case TOKEN_CONSTANT:
         return "CONSTANT";
+    case TOKEN_OPERATOR_PLUS:
+        return "OPERATOR_PLUS";
+    case TOKEN_OPERATOR_MINUS:
+        return "OPERATOR_MINUS";
+    case TOKEN_OPERATOR_MUL:
+        return "OPERATOR_MUL";
+    case TOKEN_OPERATOR_DIV:
+        return "OPERATOR_DIV";
+    case TOKEN_OPERATOR_ASSIGN:
+        return "OPERATOR_ASSIGN";
+    case TOKEN_OPERATOR_EQUAL:
+        return "OPERATOR_EQUAL";
+    case TOKEN_OPERATOR_NOT_EQUAL:
+        return "OPERATOR_NOT_EQUAL";
+    case TOKEN_OPERATOR_LESS:
+        return "OPERATOR_LESS";
+    case TOKEN_OPERATOR_LESS_EQUAL:
+        return "OPERATOR_LESS_EQUAL";
+    case TOKEN_OPERATOR_GREATER:
+        return "OPERATOR_GREATER";
+    case TOKEN_OPERATOR_GREATER_EQUAL:
+        return "OPERATOR_GREATER_EQUAL";
     case TOKEN_ERROR:
         return "ERROR";
     default:
