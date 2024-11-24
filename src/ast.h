@@ -1,14 +1,14 @@
 #ifndef EF013AD5_C306_4868_9D0B_F237FCCEDD09
 #define EF013AD5_C306_4868_9D0B_F237FCCEDD09
 
-#include "lexer.h"
-
 typedef struct function_definition_ function_definition_t;
 typedef struct program_ program_t;
 typedef struct identifier_ identifier_t;
 typedef struct statement_ statement_t;
 typedef struct return_statement_ return_statement_t;
 typedef struct expression_ expression_t;
+
+#define MAX_IDENTIFIER_LENGTH 128
 
 typedef enum
 {
@@ -56,7 +56,7 @@ struct program_
 
 struct identifier_
 {
-    char name[MAX_TOKEN_LENGTH];
+    char name[MAX_IDENTIFIER_LENGTH];
 };
 
 #endif /* EF013AD5_C306_4868_9D0B_F237FCCEDD09 */

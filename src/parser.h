@@ -1,0 +1,7 @@
+#ifndef FAF9272A_6BB8_4D5B_AE9C_2B710AB564BC
+#define FAF9272A_6BB8_4D5B_AE9C_2B710AB564BC
+
+#include "lexer.h"
+#include "ast.h"
+
+#endif /* FAF9272A_6BB8_4D5B_AE9C_2B710AB564BC */
