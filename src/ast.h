@@ -1,62 +1,83 @@
-#ifndef EF013AD5_C306_4868_9D0B_F237FCCEDD09
-#define EF013AD5_C306_4868_9D0B_F237FCCEDD09
+#ifndef AST_H
+#define AST_H
 
-typedef struct function_definition_ function_definition_t;
-typedef struct program_ program_t;
-typedef struct identifier_ identifier_t;
-typedef struct statement_ statement_t;
-typedef struct return_statement_ return_statement_t;
-typedef struct expression_ expression_t;
+#include <stdbool.h>
+#include <stddef.h>
 
-#define MAX_IDENTIFIER_LENGTH 128
+typedef struct ast_node ast_node_t;
+typedef struct function_def function_def_t;
+typedef struct statement statement_t;
+typedef struct expression expression_t;
+typedef struct identifier identifier_t;
+typedef struct program program_t;
 
-typedef enum
-{
-    CONSTANT_INT,
+typedef enum {
+    NODE_PROGRAM,
+    NODE_FUNCTION_DEF,
+    NODE_STATEMENT,
+    NODE_EXPRESSION,
+    NODE_IDENTIFIER
+} ast_node_type_t;
+
+typedef enum {
+    EXPR_CONSTANT_INT
 } expression_type_t;
 
-struct expression_
-{
-    expression_type_t expression_type;
-    union
-    {
-        int constant_int;
-    } expression;
-};
-
-struct return_statement_
-{
-    expression_t *expression;
-};
-
-typedef enum
-{
-    RETURN,
+typedef enum {
+    STMT_RETURN
 } statement_type_t;
 
-struct statement_
-{
-    statement_type_t statement_type;
-    union
-    {
-        return_statement_t return_statement;
-    } statement;
+struct ast_node {
+    ast_node_type_t type;
+    struct {
+        size_t line;
+        size_t column;
+    } location;
+    ast_node_t* parent;
 };
 
-struct function_definition_
-{
-    identifier_t *identifier;
-    statement_t *statement;
+struct identifier {
+    ast_node_t base;
+    char* name;  
 };
 
-struct program_
-{
-    function_definition_t *function_definition;
+struct expression {
+    ast_node_t base;
+    expression_type_t expr_type;
+    union {
+        int constant_int;
+    } value;
 };
 
-struct identifier_
-{
-    char name[MAX_IDENTIFIER_LENGTH];
+struct statement {
+    ast_node_t base;
+    statement_type_t stmt_type;
+    union {
+        expression_t* return_expr;
+    } value;
 };
 
-#endif /* EF013AD5_C306_4868_9D0B_F237FCCEDD09 */
+struct function_def {
+    ast_node_t base;
+    identifier_t* name;
+    statement_t* body;
+};
+
+struct program {
+    ast_node_t base;
+    function_def_t* function;
+};
+
+program_t* create_program(function_def_t* function);
+function_def_t* create_function(identifier_t* name, statement_t* body);
+statement_t* create_return_statement(expression_t* expr);
+expression_t* create_constant_int(int value);
+identifier_t* create_identifier(const char* name);
+
+void free_ast(ast_node_t* node);
+
+bool ast_validate(const ast_node_t* node);
+void ast_set_location(ast_node_t* node, size_t line, size_t column);
+const char* ast_node_type_to_string(ast_node_type_t type);
+
+#endif /* AST_H */
