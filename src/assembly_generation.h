@@ -1,0 +1,7 @@
+#ifndef CD739C29_7369_4BA1_8D17_C870A325E960
+#define CD739C29_7369_4BA1_8D17_C870A325E960
+
+#include "assembly_ast.h"
+#include "parser.h"
+
+#endif /* CD739C29_7369_4BA1_8D17_C870A325E960 */

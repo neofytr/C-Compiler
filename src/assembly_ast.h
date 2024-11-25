@@ -3,14 +3,16 @@
 
 #include <stdlib.h>
 
-typedef struct program_t program_t;
-typedef struct function_t function_t;
-typedef struct identifier_t identifier_t;
-typedef struct instruction_t instruction_t;
-typedef struct operand_t operand_t;
-typedef struct immediate_t immediate_t;
-typedef struct register_t register_t;
-typedef struct ast_node_ ast_node_t;
+typedef struct asm_program_ asm_program_t;
+typedef struct asm_function_ asm_function_t;
+typedef struct asm_identifier_ asm_identifier_t;
+typedef struct asm_instruction_ asm_instruction_t;
+typedef struct asm_instruction_mov_ asm_instruction_mov_t;
+typedef struct asm_instruction_ret_ asm_instruction_ret_t;
+typedef struct asm_operand_ asm_operand_t;
+typedef struct asm_immediate_ asm_immediate_t;
+typedef struct asm_register_ asm_register_t;
+typedef struct asm_ast_node_ asm_ast_node_t;
 
 typedef enum
 {
@@ -21,90 +23,90 @@ typedef enum
     NODE_INSTRUCTION_RET,
     NODE_OPERAND_IMM,
     NODE_OPERAND_REGISTER,
-} ast_node_type_t;
+} asm_ast_node_type_t;
 
-struct ast_node_
+struct asm_ast_node_
 {
-    ast_node_type_t type;
-    ast_node_t *parent;
+    asm_ast_node_type_t type;
+    asm_ast_node_t *parent;
 };
 
 typedef enum
 {
     OPERAND_IMMEDIATE,
     OPERAND_REGISTER
-} operand_type_t;
+} asm_operand_type_t;
 
 typedef enum
 {
     INSTRUCTION_MOV,
     INSTRUCTION_RET
-} instruction_type_t;
+} asm_instruction_type_t;
 
-struct immediate_t
+struct asm_immediate_
 {
-    ast_node_t base;
+    asm_ast_node_t base;
     int value;
 };
 
-struct register_t
+struct asm_register_
 {
-    ast_node_t base;
+    asm_ast_node_t base;
     int reg_num;
 };
 
-struct identifier_t
+struct asm_identifier_
 {
-    ast_node_t base;
+    asm_ast_node_t base;
     char *name;
 };
 
-struct operand_t
+struct asm_operand_
 {
-    ast_node_t base;
-    operand_type_t type;
+    asm_ast_node_t base;
+    asm_operand_type_t type;
     union
     {
-        immediate_t *immediate;
-        register_t *reg;
+        asm_immediate_t *immediate;
+        asm_register_t *reg;
     };
 };
 
-struct instruction_mov_t
+struct asm_instruction_mov_
 {
-    ast_node_t base;
-    operand_t src;
-    operand_t dst;
+    asm_ast_node_t base;
+    asm_operand_t src;
+    asm_operand_t dst;
 };
 
-struct instruction_ret_t
+struct asm_instruction_ret_
 {
-    ast_node_t base;
+    asm_ast_node_t base;
 };
 
-struct instruction_t
+struct asm_instruction_
 {
-    ast_node_t base;
-    instruction_type_t type;
+    asm_ast_node_t base;
+    asm_instruction_type_t type;
     union
     {
-        instruction_mov_t *mov;
-        instruction_ret_t *ret;
+        asm_instruction_mov_t *mov;
+        asm_instruction_ret_t *ret;
     };
 };
 
-struct function_t
+struct asm_function_
 {
-    ast_node_t base;
-    identifier_t *name;
-    instruction_t **instructions; // Dynamic array of instruction pointers
+    asm_ast_node_t base;
+    asm_identifier_t *name;
+    asm_instruction_t **instructions; // Dynamic array of instruction pointers
     size_t instruction_count;
 };
 
-struct program_t
+struct asm_program_
 {
-    ast_node_t base;
-    function_t *function;
+    asm_ast_node_t base;
+    asm_function_t *function;
 };
 
 #endif /* D36C472B_CEDF_4E5E_B6E9_DDAE1DEA3523 */
