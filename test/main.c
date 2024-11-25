@@ -176,7 +176,7 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    if (!compile(asm_program, "output.asm"))
+    if (!emit_asm(asm_program, "output.asm"))
     {
         return EXIT_FAILURE;
     }

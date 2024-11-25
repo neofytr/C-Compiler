@@ -1,9 +1,9 @@
 #ifndef CD739C29_7369_4BA1_8D17_C870A325E960
 #define CD739C29_7369_4BA1_8D17_C870A325E960
 
-#include "assembly_ast.h"
-#include "ast.h"
-#include "allocator.h"
+#include "../ast/assembly/assembly_ast.h"
+#include "../ast/source/ast.h"
+#include "../allocator/allocator.h"
 
 asm_program_t *generate_assembly_ast(program_t *program);
 asm_program_t *handle_program(program_t *program);

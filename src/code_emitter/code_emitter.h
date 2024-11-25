@@ -4,16 +4,16 @@
 #include <stdio.h>
 #include <errno.h>
 #include <stdbool.h>
-#include "assembly_generation.h"
+#include "../assembly_gen/assembly_generation.h"
 
 FILE *create_output_file(const char *name);
 bool emit_asm_function(asm_function_t *asm_function, FILE *output_file);
 bool emit_asm_program(asm_program_t *asm_program, FILE *output_file);
 bool emit_asm_instruction(asm_instruction_t *asm_instruction, FILE *output_file);
 
-bool compile(asm_program_t *asm_program, const char *output_file_name);
+bool emit_asm(asm_program_t *asm_program, const char *output_file_name);
 
-bool compile(asm_program_t *asm_program, const char *output_file_name)
+bool emit_asm(asm_program_t *asm_program, const char *output_file_name)
 {
     FILE *output_file = create_output_file(output_file_name);
     if (!output_file)
@@ -37,6 +37,8 @@ const char *map_val_to_reg_name(int val)
     default:
         break;
     }
+
+    return "";
 }
 
 FILE *create_output_file(const char *name)
