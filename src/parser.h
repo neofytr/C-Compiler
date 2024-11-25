@@ -114,7 +114,7 @@ identifier_t *parse_identifier(parser_t *parser)
     identifier->base.location.line = token->line;
     identifier->base.location.column = token->column;
     identifier->base.parent = NULL;
-    identifier->name = token->value; 
+    identifier->name = token->value;
 
     advance_token(parser);
     return identifier;
@@ -122,14 +122,8 @@ identifier_t *parse_identifier(parser_t *parser)
 
 expression_t *parse_expression(parser_t *parser)
 {
-    token_t *const_token = peek_token(parser);
-    if (!const_token || !expect_token(parser, TOKEN_KEYWORD_CONST, "Expected a constant expression"))
-    {
-        return NULL;
-    }
-
     token_t *int_token = peek_token(parser);
-    if (!int_token || !expect_token(parser, TOKEN_CONSTANT, "Expected integer constant"))
+    if (!int_token || !expect_token(parser, TOKEN_CONSTANT, "Expected a constant integer expression"))
     {
         return NULL;
     }
@@ -141,8 +135,8 @@ expression_t *parse_expression(parser_t *parser)
     }
 
     expression->base.type = NODE_EXPRESSION;
-    expression->base.location.line = const_token->line;
-    expression->base.location.column = const_token->column;
+    expression->base.location.line = int_token->line;
+    expression->base.location.column = int_token->column;
     expression->base.parent = NULL;
     expression->expr_type = EXPR_CONSTANT_INT;
     expression->value.constant_int = atoi(int_token->value);
