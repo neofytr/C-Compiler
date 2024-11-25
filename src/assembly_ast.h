@@ -45,13 +45,11 @@ typedef enum
 
 struct asm_immediate_
 {
-    asm_ast_node_t base;
     int value;
 };
 
 struct asm_register_
 {
-    asm_ast_node_t base;
     int reg_num;
 };
 
@@ -74,14 +72,12 @@ struct asm_operand_
 
 struct asm_instruction_mov_
 {
-    asm_ast_node_t base;
-    asm_operand_t src;
-    asm_operand_t dst;
+    asm_operand_t *src;
+    asm_operand_t *dst;
 };
 
 struct asm_instruction_ret_
 {
-    asm_ast_node_t base;
 };
 
 struct asm_instruction_
@@ -92,7 +88,7 @@ struct asm_instruction_
     {
         asm_instruction_mov_t *mov;
         asm_instruction_ret_t *ret;
-    };
+    } instr;
 };
 
 struct asm_function_
