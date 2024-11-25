@@ -67,7 +67,7 @@ struct asm_operand_
     {
         asm_immediate_t *immediate;
         asm_register_t *reg;
-    };
+    }operand;
 };
 
 struct asm_instruction_mov_

@@ -66,7 +66,7 @@ asm_operand_t *handle_expression(expression_t *expression)
             return NULL;
         }
         immediate->value = expression->value.constant_int;
-        asm_operand->immediate = immediate;
+        asm_operand->operand.immediate = immediate;
         break;
 
     default:
@@ -131,7 +131,7 @@ asm_instruction_t **handle_statement(statement_t *statement)
             return NULL;
         }
         reg->reg_num = 0; // assuming 0 is eax
-        dst_operand->reg = reg;
+        dst_operand->operand.reg = reg;
         dst_operand->base.parent = &mov_inst->base;
         mov->dst = dst_operand;
 

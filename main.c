@@ -1,6 +1,7 @@
 #include "./src/lexer.h"
 #include "./src/parser.h"
 #include "./src/assembly_generation.h"
+#include "./src/code_emitter.h"
 
 // AST Visitors
 void visit_program(program_t *program);
@@ -97,10 +98,10 @@ void visit_asm_operand(asm_operand_t *operand)
     switch (operand->type)
     {
     case OPERAND_IMMEDIATE:
-        printf("Visiting Immediate Operand: %d\n", operand->immediate->value);
+        printf("Visiting Immediate Operand: %d\n", operand->operand.immediate->value);
         break;
     case OPERAND_REGISTER:
-        printf("Visiting Register Operand: r%d\n", operand->reg->reg_num);
+        printf("Visiting Register Operand: r%d\n", operand->operand.reg->reg_num);
         break;
     default:
         printf("Unknown Operand Type\n");
@@ -150,12 +151,14 @@ int main(int argc, char **argv)
     parser_t *parser = init_parser(token_list.tokens, token_list.count);
     program_t *ast = parse_program(parser);
 
+    asm_program_t *asm_program;
+
     if (ast)
     {
         printf("AST Traversal:\n");
         visit_program(ast);
 
-        asm_program_t *asm_program = generate_assembly_ast(ast);
+        asm_program = generate_assembly_ast(ast);
         if (asm_program)
         {
             printf("Assembly AST Traversal:\n");
@@ -164,12 +167,18 @@ int main(int argc, char **argv)
         else
         {
             printf("Assembly generation failed.\n");
+            return EXIT_FAILURE;
         }
     }
     else
     {
         printf("Parsing failed.\n");
+        return EXIT_FAILURE;
     }
 
+    if (!compile(asm_program, "output.asm"))
+    {
+        return EXIT_FAILURE;
+    }
     return EXIT_SUCCESS;
 }
