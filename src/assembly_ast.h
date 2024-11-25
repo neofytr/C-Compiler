@@ -16,13 +16,13 @@ typedef struct asm_ast_node_ asm_ast_node_t;
 
 typedef enum
 {
-    NODE_PROGRAM,
-    NODE_FUNCTION,
-    NODE_IDENTIFIER,
-    NODE_INSTRUCTION_MOV,
-    NODE_INSTRUCTION_RET,
-    NODE_OPERAND_IMM,
-    NODE_OPERAND_REGISTER,
+    ASM_NODE_PROGRAM,
+    ASM_NODE_FUNCTION,
+    ASM_NODE_IDENTIFIER,
+    ASM_NODE_INSTRUCTION_MOV,
+    ASM_NODE_INSTRUCTION_RET,
+    ASM_NODE_OPERAND_IMM,
+    ASM_NODE_OPERAND_REGISTER,
 } asm_ast_node_type_t;
 
 struct asm_ast_node_
