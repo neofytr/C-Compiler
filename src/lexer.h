@@ -13,6 +13,12 @@
 #define MAX_TOKEN_LENGTH 128
 #define MAX_TOKEN_NUMBER 128
 
+/*
+If an identifier is not defined in the current scope and is used in the program
+but the identifier doesn't have a valid name, then the lexer will catch the error
+instead of the program analyzer saying that the identifier is undefined in the current scope
+*/
+
 typedef enum
 {
     TOKEN_OPENING_BRACE,          // {
