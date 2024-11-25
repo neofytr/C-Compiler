@@ -17,7 +17,7 @@ typedef enum
     NODE_FUNCTION_DEF,
     NODE_STATEMENT,
     NODE_EXPRESSION,
-    NODE_IDENTIFIER
+    NODE_IDENTIFIER,
 } ast_node_type_t;
 
 typedef enum
