@@ -69,6 +69,72 @@ parser_t *init_parser(token_t *tokens, size_t token_count)
     return parser;
 }
 
+expression_t *parse_expression(parser_t *parser)
+{
+    if (!parser)
+    {
+        return NULL;
+    }
+
+    expression_t *expression = (expression_t *)allocate(sizeof(expression_t));
+    token_t *current_token_ptr = current_token(parser);
+
+    expression->base.location.column = current_token_ptr->column;
+    expression->base.location.line = current_token_ptr->line;
+    expression->base.type = NODE_STATEMENT;
+    expression->expr_type = EXPR_CONSTANT_INT;
+
+    if (!match_token(parser, TOKEN_KEYWORD_CONST))
+    {
+        error("Expected a constant expression", current_token(parser)->line, current_token(parser)->column);
+        return NULL;
+    }
+
+    expression->value.constant_int = atoi(current_token_ptr->value);
+
+    return expression;
+}
+
+statement_t *parse_statement(parser_t *parser)
+{
+    if (!parser)
+    {
+        return NULL;
+    }
+
+    statement_t *statement = (statement_t *)allocate(sizeof(statement));
+    token_t *current_token_ptr = current_token(parser);
+
+    statement->base.location.column = current_token_ptr->column;
+    statement->base.location.line = current_token_ptr->line;
+    statement->base.type = NODE_STATEMENT;
+    statement->stmt_type = STMT_RETURN;
+
+    if (!match_token(parser, TOKEN_KEYWORD_RETURN))
+    {
+        error("Expected 'return' statement", current_token(parser)->line, current_token(parser)->column);
+        return NULL;
+    }
+
+    expression_t *expression = parse_expression(parser);
+    if (!expression)
+    {
+        error("Expected an expression after 'return'", current_token(parser)->line, current_token(parser)->column);
+        return NULL;
+    }
+    expression->base.parent = &(statement->base);
+
+    statement->value.return_expr = expression;
+
+    if (!match_token(parser, TOKEN_SEMICOLON))
+    {
+        error("Expected ';' after return expression", current_token(parser)->line, current_token(parser)->column);
+        return NULL;
+    }
+
+    return statement;
+}
+
 identifier_t *parse_identifier(parser_t *parser)
 {
 }
@@ -93,14 +159,55 @@ function_def_t *parse_function(parser_t *parser)
         return NULL;
     }
 
-    token_t *current_token_ptr = current_token(parser);
-
     identifier_t *name = parse_identifier(parser);
     if (!name)
     {
+        error("Expected an identifier for function name", current_token(parser)->line, current_token(parser)->column);
         return NULL;
     }
     name->base.parent = &(function->base);
+
+    if (!match_token(parser, TOKEN_OPENING_PAREN))
+    {
+        error("Expected '(' after function name", current_token(parser)->line, current_token(parser)->column);
+        return NULL;
+    }
+
+    if (!match_token(parser, TOKEN_KEYWORD_VOID))
+    {
+        error("Expected 'void' inside function parameters", current_token(parser)->line, current_token(parser)->column);
+        return NULL;
+    }
+
+    if (!match_token(parser, TOKEN_CLOSING_PAREN))
+    {
+        error("Expected ')' after 'void'", current_token(parser)->line, current_token(parser)->column);
+        return NULL;
+    }
+
+    if (!match_token(parser, TOKEN_OPENING_BRACE))
+    {
+        error("Expected '{' to start function body", current_token(parser)->line, current_token(parser)->column);
+        return NULL;
+    }
+
+    statement_t *body = parse_statement(parser);
+    if (!body)
+    {
+        error("Expected a statement inside function body", current_token(parser)->line, current_token(parser)->column);
+        return NULL;
+    }
+    body->base.parent = &(function->base);
+
+    function->body = body;
+
+    if (!match_token(parser, TOKEN_CLOSING_BRACE))
+    {
+        error("Expected '}' to close function body", current_token(parser)->line, current_token(parser)->column);
+        return NULL;
+    }
+
+    return function;
 }
 
 program_t *parse_program(parser_t *parser)
