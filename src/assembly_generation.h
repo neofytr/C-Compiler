@@ -5,11 +5,17 @@
 #include "ast.h"
 #include "allocator.h"
 
+asm_program_t *generate_assembly_ast(program_t *program);
 asm_program_t *handle_program(program_t *program);
 asm_function_t *handle_function(function_def_t *function);
 asm_instruction_t **handle_statement(statement_t *statement);
 asm_identifier_t *handle_identifier(identifier_t *identifier);
 asm_operand_t *handle_expression(expression_t *expression);
+
+asm_program_t *generate_assembly_ast(program_t *program)
+{
+    return handle_program(program);
+}
 
 asm_identifier_t *handle_identifier(identifier_t *identifier)
 {
