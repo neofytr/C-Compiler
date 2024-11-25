@@ -1,4 +1,3 @@
-```markdown
 # neocc
 
 `neocc` is my custom compiler front-end and back-end for the C programming language. 
