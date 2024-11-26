@@ -25,6 +25,7 @@ typedef enum ast_node_type_e
     NODE_STATEMENT,
     NODE_EXPRESSION,
     NODE_IDENTIFIER,
+    NODE_UNARY_OP,
 } ast_node_type_t;
 
 /**
@@ -34,7 +35,8 @@ typedef enum ast_node_type_e
 typedef enum expression_type_e
 {
     EXPR_CONSTANT_INT,
-    EXPR_UNARY
+    EXPR_UNARY,
+    EXPR_NESTED,
 } expression_type_t;
 
 /**
@@ -101,8 +103,9 @@ struct expression_t
     expression_type_t expr_type;
     union
     {
-        unary_t *unary;
+        unary_t unary;
         int constant_int;
+        expression_t *nested_expr;
     } value;
 };
 

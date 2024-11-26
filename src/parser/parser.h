@@ -122,8 +122,8 @@ identifier_t *parse_identifier(parser_t *parser)
 
 expression_t *parse_expression(parser_t *parser)
 {
-    token_t *int_token = peek_token(parser);
-    if (!int_token || !expect_token(parser, TOKEN_CONSTANT, "Expected a constant integer expression"))
+    token_t *token = peek_token(parser);
+    if (!token)
     {
         return NULL;
     }
@@ -134,12 +134,105 @@ expression_t *parse_expression(parser_t *parser)
         return NULL;
     }
 
-    expression->base.type = NODE_EXPRESSION;
-    expression->base.location.line = int_token->line;
-    expression->base.location.column = int_token->column;
-    expression->base.parent = NULL;
-    expression->expr_type = EXPR_CONSTANT_INT;
-    expression->value.constant_int = atoi(int_token->value);
+    switch (token->type)
+    {
+    case TOKEN_CONSTANT:
+    {
+        expression->base.type = NODE_EXPRESSION;
+        expression->base.location.line = token->line;
+        expression->base.location.column = token->column;
+        expression->base.parent = NULL;
+        expression->expr_type = EXPR_CONSTANT_INT;
+        expression->value.constant_int = atoi(token->value);
+
+        advance_token(parser);
+        break;
+    }
+
+    case TOKEN_OPENING_PAREN:
+    {
+        advance_token(parser);
+        expression->base.type = NODE_EXPRESSION;
+        expression->base.location.line = token->line;
+        expression->base.location.column = token->column;
+        expression->base.parent = NULL;
+        expression->expr_type = EXPR_NESTED;
+
+        static bool expecting_closing_paren = false;
+
+        expression_t *nested_expression = parse_expression(parser);
+        if (!nested_expression)
+        {
+            token_t *current_token = peek_token(parser);
+            if (!expecting_closing_paren)
+            {
+                fprintf(stderr, "Line %zu, Column: %zu -> Error: Expected an expression\n",
+                        current_token->line, current_token->column);
+            }
+            else
+            {
+                fprintf(stderr, "Line %zu, Column: %zu -> Error: Expected closing parenthesis\n",
+                        current_token->line, current_token->column);
+            }
+            return NULL;
+        }
+
+        nested_expression->base.parent = &(expression->base);
+        expression->value.nested_expr = nested_expression;
+
+        if (!expect_token(parser, TOKEN_CLOSING_PAREN, "Expected closing parenthesis"))
+        {
+            expecting_closing_paren = true;
+            return NULL;
+        }
+        break;
+    }
+
+    case TOKEN_OPERATOR_NEGATION:
+    case TOKEN_OPERATOR_BITWISE_COMPLEMENT:
+    {
+        token_type_t unary_op_type = token->type;
+        advance_token(parser);
+
+        expression->base.type = NODE_EXPRESSION;
+        expression->base.location.line = token->line;
+        expression->base.location.column = token->column;
+        expression->base.parent = NULL;
+        expression->expr_type = EXPR_UNARY;
+
+        expression_t *nested_expression = parse_expression(parser);
+        if (!nested_expression)
+        {
+            token_t *current_token = peek_token(parser);
+            fprintf(stderr, "Line %zu, Column: %zu -> Error: Expected an expression\n",
+                    current_token->line, current_token->column);
+            return NULL;
+        }
+
+        nested_expression->base.parent = &(expression->base);
+        expression->expr_type = EXPR_UNARY;
+        expression->value.unary.expression = nested_expression;
+
+        unary_operator_t *unary_operator = (unary_operator_t *)allocate(sizeof(unary_operator_t));
+        if (!unary_operator)
+        {
+            return NULL;
+        }
+
+        unary_operator->base.location.column = token->column;
+        unary_operator->base.location.line = token->line;
+        unary_operator->base.type = NODE_UNARY_OP;
+        unary_operator->operator=(unary_op_type == TOKEN_OPERATOR_NEGATION) ? NEGATE : BITWISE_COMPLEMENT;
+
+        expression->value.unary.unary_operator = unary_operator;
+        break;
+    }
+
+    default:
+        fprintf(stderr, "Line %zu, Column: %zu -> Unexpected token type\n",
+                token->line, token->column);
+        return NULL;
+    }
 
     return expression;
 }
