@@ -1,7 +1,7 @@
-#include "./src/lexer.h"
-#include "./src/parser.h"
-#include "./src/assembly_generation.h"
-#include "./src/code_emitter.h"
+#include "./src/lexer/lexer.h"
+#include "./src/parser/parser.h"
+#include "./src/assembly_gen/assembly_generation.h"
+#include "./src/code_emitter/code_emitter.h"
 
 // AST Visitors
 void visit_program(program_t *program);
@@ -148,7 +148,7 @@ int main(int argc, char **argv)
 
     free(source);
 
-    parser_t *parser = init_parser(token_list.tokens, token_list.count);
+    /* parser_t *parser = init_parser(token_list.tokens, token_list.count);
     program_t *ast = parse_program(parser);
 
     asm_program_t *asm_program;
@@ -179,6 +179,6 @@ int main(int argc, char **argv)
     if (!emit_asm(asm_program, "output.asm"))
     {
         return EXIT_FAILURE;
-    }
+    } */
     return EXIT_SUCCESS;
 }

@@ -21,35 +21,38 @@ instead of the program analyzer saying that the identifier is undefined in the c
 
 typedef enum
 {
-    TOKEN_OPENING_BRACE,          // {
-    TOKEN_CLOSING_BRACE,          // }
-    TOKEN_OPENING_PAREN,          // (
-    TOKEN_CLOSING_PAREN,          // )
-    TOKEN_KEYWORD_INT,            // int
-    TOKEN_KEYWORD_VOID,           // void
-    TOKEN_KEYWORD_RETURN,         // return
-    TOKEN_KEYWORD_IF,             // if
-    TOKEN_KEYWORD_ELSE,           // else
-    TOKEN_KEYWORD_WHILE,          // while
-    TOKEN_KEYWORD_FOR,            // for
-    TOKEN_KEYWORD_BREAK,          // break
-    TOKEN_KEYWORD_CONTINUE,       // continue
-    TOKEN_KEYWORD_CONST,          // const
-    TOKEN_IDENTIFIER,             // [a-zA-Z_][a-zA-Z_]*
-    TOKEN_SEMICOLON,              // ;
-    TOKEN_CONSTANT,               // [0-9]+(-[0-9]+)*
-    TOKEN_OPERATOR_PLUS,          // +
-    TOKEN_OPERATOR_MINUS,         // -
-    TOKEN_OPERATOR_MUL,           // *
-    TOKEN_OPERATOR_DIV,           // /
-    TOKEN_OPERATOR_ASSIGN,        // =
-    TOKEN_OPERATOR_EQUAL,         // ==
-    TOKEN_OPERATOR_NOT_EQUAL,     // !=
-    TOKEN_OPERATOR_LESS,          // <
-    TOKEN_OPERATOR_LESS_EQUAL,    // <=
-    TOKEN_OPERATOR_GREATER,       // >
-    TOKEN_OPERATOR_GREATER_EQUAL, // >=
-    TOKEN_ERROR                   // For error reporting
+    TOKEN_OPENING_BRACE,               // {
+    TOKEN_CLOSING_BRACE,               // }
+    TOKEN_OPENING_PAREN,               // (
+    TOKEN_CLOSING_PAREN,               // )
+    TOKEN_KEYWORD_INT,                 // int
+    TOKEN_KEYWORD_VOID,                // void
+    TOKEN_KEYWORD_RETURN,              // return
+    TOKEN_KEYWORD_IF,                  // if
+    TOKEN_KEYWORD_ELSE,                // else
+    TOKEN_KEYWORD_WHILE,               // while
+    TOKEN_KEYWORD_FOR,                 // for
+    TOKEN_KEYWORD_BREAK,               // break
+    TOKEN_KEYWORD_CONTINUE,            // continue
+    TOKEN_KEYWORD_CONST,               // const
+    TOKEN_IDENTIFIER,                  // [a-zA-Z_][a-zA-Z_]*
+    TOKEN_SEMICOLON,                   // ;
+    TOKEN_CONSTANT,                    // [0-9]+(-[0-9]+)*
+    TOKEN_OPERATOR_PLUS,               // +
+                                       //    TOKEN_OPERATOR_MINUS,         // -
+    TOKEN_OPERATOR_MUL,                // *
+    TOKEN_OPERATOR_DIV,                // /
+    TOKEN_OPERATOR_ASSIGN,             // =
+    TOKEN_OPERATOR_EQUAL,              // ==
+    TOKEN_OPERATOR_NOT_EQUAL,          // !=
+    TOKEN_OPERATOR_LESS,               // <
+    TOKEN_OPERATOR_LESS_EQUAL,         // <=
+    TOKEN_OPERATOR_GREATER,            // >
+    TOKEN_OPERATOR_GREATER_EQUAL,      // >=
+    TOKEN_OPERATOR_BITWISE_COMPLEMENT, // ~
+    TOKEN_OPERATOR_NEGATION,           // -
+    TOKEN_OPERATOR_DECREMENT,          // --
+    TOKEN_ERROR                        // For error reporting
 } token_type_t;
 
 typedef struct
@@ -344,6 +347,9 @@ static bool lex_symbol(lexer_t *lexer, token_list_t *list)
     case '(':
         type = TOKEN_OPENING_PAREN;
         break;
+    case '~':
+        type = TOKEN_OPERATOR_BITWISE_COMPLEMENT;
+        break;
     case ')':
         type = TOKEN_CLOSING_PAREN;
         break;
@@ -354,7 +360,17 @@ static bool lex_symbol(lexer_t *lexer, token_list_t *list)
         type = TOKEN_OPERATOR_PLUS;
         break;
     case '-':
-        type = TOKEN_OPERATOR_MINUS;
+        advance_lexer(lexer);
+        if (peek(lexer) == '-')
+        {
+            symbol[1] = '-';
+            type = TOKEN_OPERATOR_DECREMENT;
+        }
+        else
+        {
+            type = TOKEN_OPERATOR_NEGATION;
+            retreat_lexer(lexer);
+        }
         break;
     case '*':
         type = TOKEN_OPERATOR_MUL;
@@ -565,8 +581,8 @@ static const char *token_type_to_string(token_type_t type)
         return "CONSTANT";
     case TOKEN_OPERATOR_PLUS:
         return "OPERATOR_PLUS";
-    case TOKEN_OPERATOR_MINUS:
-        return "OPERATOR_MINUS";
+    case TOKEN_OPERATOR_NEGATION:
+        return "OPERATOR_NEGATION";
     case TOKEN_OPERATOR_MUL:
         return "OPERATOR_MUL";
     case TOKEN_OPERATOR_DIV:
@@ -585,6 +601,10 @@ static const char *token_type_to_string(token_type_t type)
         return "OPERATOR_GREATER";
     case TOKEN_OPERATOR_GREATER_EQUAL:
         return "OPERATOR_GREATER_EQUAL";
+    case TOKEN_OPERATOR_BITWISE_COMPLEMENT:
+        return "OPERATOR_BITWISE_COMPLEMENT";
+    case TOKEN_OPERATOR_DECREMENT:
+        return "OPERATOR_DECREMENT";
     case TOKEN_ERROR:
         return "ERROR";
     default:

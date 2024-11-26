@@ -4,6 +4,15 @@
 #include "./code_emitter/code_emitter.h"
 #include "./parser/parser.h"
 
+/*
+
+Most production C compilers evaluate constant expressions at compile time, even when
+no optimizations are enabled. They behave this way since some constant expressions, like
+static variable initializers, must be evaluated at compile time, and evaluating all
+constant expressions at compile time is simpler than evaluating only some.
+
+*/
+
 void print_usage(const char *prog_name)
 {
     fprintf(stderr, "Usage: %s <inputfile> [-o <outputfile>]\n", prog_name);
