@@ -1,7 +1,7 @@
-#include "./src/lexer/lexer.h"
-#include "./src/parser/parser.h"
-#include "./src/assembly_gen/assembly_generation.h"
-#include "./src/code_emitter/code_emitter.h"
+#include "../src/lexer/lexer.h"
+#include "../src/parser/parser.h"
+#include "../src/assembly_gen/assembly_generation.h"
+#include "../src/code_emitter/code_emitter.h"
 
 // AST Visitors
 void visit_program(program_t *program);

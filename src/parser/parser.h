@@ -1,9 +1,9 @@
 #ifndef FAF9272A_6BB8_4D5B_AE9C_2B710AB564BC
 #define FAF9272A_6BB8_4D5B_AE9C_2B710AB564BC
 
-#include "./lexer/lexer.h"
-#include "./ast/source/ast.h"
-#include "./allocator/allocator.h"
+#include "../lexer/lexer.h"
+#include "../ast/source/ast.h"
+#include "../allocator/allocator.h"
 #include <stdio.h>
 #include <stdbool.h>
 
