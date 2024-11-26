@@ -1,7 +1,6 @@
 #ifndef F68732A3_D9B4_483E_A152_AB2FB4E19B12
 #define F68732A3_D9B4_483E_A152_AB2FB4E19B12
 
-// Base AST node type
 typedef struct ir_ast_node_e
 {
     enum ir_ast_node_type
@@ -16,7 +15,6 @@ typedef struct ir_ast_node_e
     struct ir_ast_node_e *parent;
 } ir_ast_node_t;
 
-// Unary Operator
 typedef struct ir_unary_operator_e
 {
     ir_ast_node_t base;
@@ -27,20 +25,17 @@ typedef struct ir_unary_operator_e
     } unary_op;
 } ir_unary_operator_t;
 
-// Identifier
 typedef struct ir_identifier_e
 {
     ir_ast_node_t base;
     char *name;
 } ir_identifier_t;
 
-// Variable
 typedef struct ir_variable_e
 {
     ir_identifier_t *identifier;
 } ir_variable_t;
 
-// Value Types
 typedef enum
 {
     IR_VAL_CONSTANT_INT,
@@ -58,20 +53,17 @@ typedef struct ir_value_e
     } value;
 } ir_value_t;
 
-// Instruction Types
 typedef enum
 {
     IR_INSTR_RETURN,
     IR_INSTR_UNARY,
 } ir_instruction_type_t;
 
-// Return Instruction
 typedef struct
 {
     ir_value_t *value;
 } ir_instruction_return_t;
 
-// Unary Instruction
 typedef struct
 {
     ir_unary_operator_t *unary_operator;
@@ -79,7 +71,6 @@ typedef struct
     ir_value_t *destination;
 } ir_instruction_unary_t;
 
-// Generic Instruction
 typedef struct ir_instruction_e
 {
     ir_ast_node_t base;
@@ -91,14 +82,12 @@ typedef struct ir_instruction_e
     } instruction;
 } ir_instruction_t;
 
-// Program Structure
 typedef struct
 {
     ir_ast_node_t base;
     ir_function_t *function;
 } ir_program_t;
 
-// Function Definition
 typedef struct
 {
     ir_ast_node_t base;
