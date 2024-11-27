@@ -26,7 +26,53 @@ ir_instruction_struct_t handle_statement(statement_t *source_statement)
     {
     case STMT_RETURN:
     {
+        // return(val)
+        expression_t *source_return_expression = source_statement->value.return_expr;
+        if (!source_return_expression)
+        {
+            return NULL_INSTRUCTION_STRUCT;
+        }
 
+        ir_instruction_struct_t ir_return_val_instruction_struct = handle_expression(source_return_expression);
+        if (!ir_return_val_instruction_struct.instructions)
+        {
+            return NULL_INSTRUCTION_STRUCT;
+        }
+
+        ir_instruction_t **ir_return_val_instructions = ir_return_val_instruction_struct.instructions;
+        size_t ir_return_val_instruction_count = ir_return_val_instruction_struct.instruction_count;
+
+        ir_instruction_t *ir_return_instruction = (ir_instruction_t *)allocate(sizeof(ir_instruction_t));
+        if (!ir_return_instruction)
+        {
+            return NULL_INSTRUCTION_STRUCT;
+        }
+
+        ir_return_instruction->base.type = IR_NODE_INSTRUCTION;
+        ir_return_instruction->type = IR_INSTR_RETURN;
+
+        if (!ir_return_val_instruction_count)
+        {
+            ir_value_t *ir_instruction_return_value = (ir_value_t *)allocate(sizeof(ir_value_t));
+            if (!ir_instruction_return_value)
+            {
+                return NULL_INSTRUCTION_STRUCT;
+            }
+
+            ir_instruction_return_value->base.type = IR_NODE_VALUE;
+            ir_instruction_return_value->base.parent = &(ir_return_instruction->base);
+            ir_instruction_return_value->type = IR_VAL_CONSTANT_INT;
+            ir_instruction_return_value->value.constant_int = source_return_expression->value.constant_int;
+            ir_return_instruction->instruction.return_instr = (ir_instruction_return_t){.value = ir_instruction_return_value};
+
+            return (ir_instruction_struct_t){.instructions = &ir_return_instruction, .instruction_count = 1};
+        }
+
+        ir_return_instruction->instruction.return_instr = (ir_instruction_return_t){.value = ir_return_val_instructions[ir_return_val_instruction_count - 1]->instruction.unary_instr.destination};
+        ir_return_val_instructions[ir_return_val_instruction_count] = ir_return_instruction;
+        ir_return_val_instruction_struct.instruction_count++;
+
+        return ir_return_val_instruction_struct;
         break;
     }
     default:
