@@ -1,17 +1,21 @@
 #ifndef F68732A3_D9B4_483E_A152_AB2FB4E19B12
 #define F68732A3_D9B4_483E_A152_AB2FB4E19B12
 
+#include <stdlib.h>
+
+typedef enum
+{
+    IR_NODE_PROGRAM,
+    IR_NODE_FUNCTION,
+    IR_NODE_INSTRUCTION,
+    IR_NODE_IDENTIFIER,
+    IR_NODE_VALUE,
+    IR_NODE_UNARY_OPERATOR,
+} ir_ast_node_type_t;
+
 typedef struct ir_ast_node_e
 {
-    enum ir_ast_node_type
-    {
-        IR_NODE_PROGRAM,
-        IR_NODE_FUNCTION,
-        IR_NODE_INSTRUCTION,
-        IR_NODE_IDENTIFIER,
-        IR_NODE_VALUE,
-        IR_NODE_UNARY_OPERATOR,
-    } type;
+    ir_ast_node_type_t type;
     struct ir_ast_node_e *parent;
 } ir_ast_node_t;
 
@@ -90,9 +94,16 @@ typedef struct
 
 typedef struct
 {
+    ir_instruction_t **instructions;
+    size_t instruction_count;
+} ir_instruction_struct_t;
+
+typedef struct
+{
     ir_ast_node_t base;
     ir_identifier_t *name;
     ir_instruction_t **body;
+    size_t instruction_count;
 } ir_function_t;
 
 #endif /* F68732A3_D9B4_483E_A152_AB2FB4E19B12 */
