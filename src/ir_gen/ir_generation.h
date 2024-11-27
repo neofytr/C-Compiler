@@ -12,6 +12,41 @@ ir_instruction_struct_t handle_statement(statement_t *source_statement);
 ir_instruction_struct_t handle_expression(expression_t *source_expression);
 ir_program_t *handle_program(program_t *source_program);
 ir_identifier_t *handle_identifier(identifier_t *source_identifier);
+ir_unary_operator_t *handle_unary_operator(unary_operator_t *source_unary_operator);
+
+ir_instruction_struct_t handle_expression(expression_t *source_expression)
+{
+    if (!source_expression)
+    {
+        return NULL_INSTRUCTION_STRUCT;
+    }
+
+    expression_type_t source_expression_type = source_expression->expr_type;
+
+    switch (source_expression_type)
+    {
+    case EXPR_CONSTANT_INT:
+    {
+        return (ir_instruction_struct_t){.instructions = NULL, .instruction_count = 0};
+    }
+    case EXPR_UNARY:
+    {
+        unary_t source_unary = source_expression->value.unary;
+        unary_operator_t *source_unary_operator = source_unary.unary_operator;
+
+        if (!source_unary_operator)
+        {
+            return NULL_INSTRUCTION_STRUCT;
+        }
+
+        ir_unary_operator_t *ir_unary_operator = handle_unary_operator(source_unary_operator);
+        if (!ir_unary_operator)
+        {
+            return NULL_INSTRUCTION_STRUCT;
+        }
+    }
+    }
+}
 
 ir_instruction_struct_t handle_statement(statement_t *source_statement)
 {
@@ -181,5 +216,7 @@ ir_function_t *handle_function(function_def_t *source_function)
 
     return ir_function;
 }
+
+#undef NULL_INSTRUCTION_STRUCT
 
 #endif /* BF4D96C0_1C97_4F20_AB1B_168AC361CE92 */

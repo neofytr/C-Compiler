@@ -51,7 +51,3 @@ Contributions are welcome! Please submit a pull request or open an issue if you 
 ## License
 
 This project is licensed under the MIT License. See the `LICENSE` file for details.
-
-### Notes:
-- Replace `<repository-url>` with the actual URL of your repository.
-- Modify the description and structure if additional features or files exist.
