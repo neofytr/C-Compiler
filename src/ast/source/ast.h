@@ -66,14 +66,17 @@ struct ast_node_t
 /**
  * Represents unary operators with their specific type
  */
+
+typedef enum
+{
+    BITWISE_COMPLEMENT,
+    NEGATE,
+} unary_operator_type_t;
+
 struct unary_operator_t
 {
     ast_node_t base;
-    enum
-    {
-        BITWISE_COMPLEMENT,
-        NEGATE,
-    } operator;
+    unary_operator_type_t op;
 };
 
 /**

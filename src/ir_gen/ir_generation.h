@@ -6,6 +6,9 @@
 #include "../allocator/allocator.h"
 
 #define NULL_INSTRUCTION_STRUCT ((ir_instruction_struct_t){0})
+#define MAX_TEMP_VAR_LENGTH 8
+
+size_t temp_var_count = 0;
 
 ir_function_t *handle_function(function_def_t *source_function);
 ir_instruction_struct_t handle_statement(statement_t *source_statement);
@@ -13,6 +16,50 @@ ir_instruction_struct_t handle_expression(expression_t *source_expression);
 ir_program_t *handle_program(program_t *source_program);
 ir_identifier_t *handle_identifier(identifier_t *source_identifier);
 ir_unary_operator_t *handle_unary_operator(unary_operator_t *source_unary_operator);
+char *new_temp_var_name();
+
+char *new_temp_var_name()
+{
+    char *temp_var_name = (char *)allocate(sizeof(char) * MAX_TEMP_VAR_LENGTH);
+    if (!temp_var_name)
+    {
+        return NULL;
+    }
+
+    snprintf(temp_var_name, MAX_TEMP_VAR_LENGTH, ".tmp%zu", temp_var_count++);
+
+    return temp_var_name;
+}
+
+ir_unary_operator_t *handle_unary_operator(unary_operator_t *source_unary_operator)
+{
+    if (!source_unary_operator)
+    {
+        return NULL;
+    }
+
+    ir_unary_operator_t *ir_unary_operator = (ir_unary_operator_t *)allocate(sizeof(ir_unary_operator_t));
+    if (!ir_unary_operator)
+    {
+        return NULL;
+    }
+
+    ir_unary_operator->base.type = IR_NODE_UNARY_OPERATOR;
+
+    switch (source_unary_operator->op)
+    {
+    case BITWISE_COMPLEMENT:
+        ir_unary_operator->unary_op = IR_UNARY_BITWISE_COMPLEMENT;
+        break;
+    case NEGATE:
+        ir_unary_operator->unary_op = IR_UNARY_NEGATE;
+        break;
+    default:
+        return NULL;
+    }
+
+    return ir_unary_operator;
+}
 
 ir_instruction_struct_t handle_expression(expression_t *source_expression)
 {
@@ -27,23 +74,142 @@ ir_instruction_struct_t handle_expression(expression_t *source_expression)
     {
     case EXPR_CONSTANT_INT:
     {
+        ir_value_t *ir_constant_value = (ir_value_t *)allocate(sizeof(ir_value_t));
+        if (!ir_constant_value)
+        {
+            return NULL_INSTRUCTION_STRUCT;
+        }
+
+        ir_constant_value->base.type = IR_NODE_VALUE;
+        ir_constant_value->type = IR_VAL_CONSTANT_INT;
+        ir_constant_value->value.constant_int = source_expression->value.constant_int;
+
         return (ir_instruction_struct_t){.instructions = NULL, .instruction_count = 0};
     }
     case EXPR_UNARY:
     {
         unary_t source_unary = source_expression->value.unary;
         unary_operator_t *source_unary_operator = source_unary.unary_operator;
+        expression_t *source_unary_expression = source_unary.expression;
 
-        if (!source_unary_operator)
+        if (!source_unary_operator || !source_unary_expression)
         {
             return NULL_INSTRUCTION_STRUCT;
         }
+
+        ir_instruction_struct_t ir_source_instruction_struct = handle_expression(source_unary_expression);
 
         ir_unary_operator_t *ir_unary_operator = handle_unary_operator(source_unary_operator);
         if (!ir_unary_operator)
         {
+            if (ir_source_instruction_struct.instructions)
+            {
+                free(ir_source_instruction_struct.instructions);
+            }
             return NULL_INSTRUCTION_STRUCT;
         }
+
+        ir_value_t *ir_source_value = ir_source_instruction_struct.instruction_count > 0
+                                          ? ir_source_instruction_struct.instructions[ir_source_instruction_struct.instruction_count - 1]->instruction.unary_instr.destination
+                                          : NULL;
+
+        if (!ir_source_value)
+        {
+            ir_source_value = (ir_value_t *)allocate(sizeof(ir_value_t));
+            if (!ir_source_value)
+            {
+                if (ir_source_instruction_struct.instructions)
+                {
+                    free(ir_source_instruction_struct.instructions);
+                }
+                return NULL_INSTRUCTION_STRUCT;
+            }
+            ir_source_value->base.type = IR_NODE_VALUE;
+            ir_source_value->type = IR_VAL_CONSTANT_INT;
+            ir_source_value->value.constant_int = source_unary_expression->value.constant_int;
+        }
+
+        ir_value_t *ir_destination_value = (ir_value_t *)allocate(sizeof(ir_value_t));
+        if (!ir_destination_value)
+        {
+            if (ir_source_instruction_struct.instructions)
+            {
+                free(ir_source_instruction_struct.instructions);
+            }
+            return NULL_INSTRUCTION_STRUCT;
+        }
+        ir_destination_value->base.type = IR_NODE_VALUE;
+        ir_destination_value->type = IR_VAL_VARIABLE;
+
+        char *temp_var_name = new_temp_var_name();
+        if (!temp_var_name)
+        {
+            if (ir_source_instruction_struct.instructions)
+            {
+                free(ir_source_instruction_struct.instructions);
+            }
+            free(ir_destination_value);
+            return NULL_INSTRUCTION_STRUCT;
+        }
+        ir_destination_value->value.variable.identifier = (ir_identifier_t *)allocate(sizeof(ir_identifier_t));
+        ir_destination_value->value.variable.identifier->base.type = IR_NODE_IDENTIFIER;
+        ir_destination_value->value.variable.identifier->name = temp_var_name;
+
+        ir_instruction_t *ir_unary_instruction = (ir_instruction_t *)allocate(sizeof(ir_instruction_t));
+        if (!ir_unary_instruction)
+        {
+            if (ir_source_instruction_struct.instructions)
+            {
+                free(ir_source_instruction_struct.instructions);
+            }
+            free(ir_destination_value);
+            return NULL_INSTRUCTION_STRUCT;
+        }
+
+        ir_unary_instruction->base.type = IR_NODE_INSTRUCTION;
+        ir_unary_instruction->type = IR_INSTR_UNARY;
+        ir_unary_instruction->instruction.unary_instr.unary_operator = ir_unary_operator;
+        ir_unary_instruction->instruction.unary_instr.source = ir_source_value;
+        ir_unary_instruction->instruction.unary_instr.destination = ir_destination_value;
+
+        if (ir_source_instruction_struct.instruction_count > 0)
+        {
+            ir_instruction_t **new_instructions = (ir_instruction_t **)allocate(
+                sizeof(ir_instruction_t *) * (ir_source_instruction_struct.instruction_count + 1));
+
+            if (!new_instructions)
+            {
+                free(ir_source_instruction_struct.instructions);
+                free(ir_unary_instruction);
+                return NULL_INSTRUCTION_STRUCT;
+            }
+
+            memcpy(new_instructions,
+                   ir_source_instruction_struct.instructions,
+                   sizeof(ir_instruction_t *) * ir_source_instruction_struct.instruction_count);
+
+            new_instructions[ir_source_instruction_struct.instruction_count] = ir_unary_instruction;
+
+            free(ir_source_instruction_struct.instructions);
+
+            return (ir_instruction_struct_t){
+                .instructions = new_instructions,
+                .instruction_count = ir_source_instruction_struct.instruction_count + 1};
+        }
+        else
+        {
+            return (ir_instruction_struct_t){
+                .instructions = &ir_unary_instruction,
+                .instruction_count = 1};
+        }
+    }
+    case EXPR_NESTED:
+    {
+        return handle_expression(source_expression->value.nested_expr);
+    }
+    default:
+    {
+        return NULL_INSTRUCTION_STRUCT;
     }
     }
 }

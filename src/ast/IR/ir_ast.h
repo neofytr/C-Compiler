@@ -19,14 +19,16 @@ typedef struct ir_ast_node_e
     struct ir_ast_node_e *parent;
 } ir_ast_node_t;
 
+typedef enum
+{
+    IR_UNARY_BITWISE_COMPLEMENT,
+    IR_UNARY_NEGATE,
+} ir_unary_operator_type_t;
+
 typedef struct ir_unary_operator_e
 {
     ir_ast_node_t base;
-    enum
-    {
-        IR_UNARY_BITWISE_COMPLEMENT,
-        IR_UNARY_NEGATE,
-    } unary_op;
+    ir_unary_operator_type_t unary_op;
 } ir_unary_operator_t;
 
 typedef struct ir_identifier_e
