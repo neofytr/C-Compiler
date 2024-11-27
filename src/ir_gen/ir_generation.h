@@ -26,20 +26,7 @@ ir_instruction_struct_t handle_statement(statement_t *source_statement)
     {
     case STMT_RETURN:
     {
-        expression_t *return_expression = source_statement->value.return_expr;
-        if (!return_expression)
-        {
-            return NULL_INSTRUCTION_STRUCT;
-        }
 
-        ir_instruction_struct_t ir_instruction_struct = handle_expression(return_expression);
-        ir_instruction_t **ir_instructions = ir_instruction_struct.instructions;
-        if (!ir_instructions)
-        {
-            return NULL_INSTRUCTION_STRUCT;
-        }
-
-        return ir_instruction_struct;
         break;
     }
     default:
