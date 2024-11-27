@@ -222,7 +222,7 @@ expression_t *parse_expression(parser_t *parser)
         unary_operator->base.location.column = token->column;
         unary_operator->base.location.line = token->line;
         unary_operator->base.type = NODE_UNARY_OP;
-        unary_operator->operator=(unary_op_type == TOKEN_OPERATOR_NEGATION) ? NEGATE : BITWISE_COMPLEMENT;
+        unary_operator->op=(unary_op_type == TOKEN_OPERATOR_NEGATION) ? NEGATE : BITWISE_COMPLEMENT;
 
         expression->value.unary.unary_operator = unary_operator;
         break;

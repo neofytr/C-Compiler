@@ -10,12 +10,12 @@
 
 size_t temp_var_count = 0;
 
-ir_function_t *handle_function(function_def_t *source_function);
-ir_instruction_struct_t handle_statement(statement_t *source_statement);
-ir_instruction_struct_t handle_expression(expression_t *source_expression);
-ir_program_t *handle_program(program_t *source_program);
-ir_identifier_t *handle_identifier(identifier_t *source_identifier);
-ir_unary_operator_t *handle_unary_operator(unary_operator_t *source_unary_operator);
+ir_function_t *ir_handle_function(function_def_t *source_function);
+ir_instruction_struct_t ir_handle_statement(statement_t *source_statement);
+ir_instruction_struct_t ir_handle_expression(expression_t *source_expression);
+ir_program_t *ir_handle_program(program_t *source_program);
+ir_identifier_t *ir_handle_identifier(identifier_t *source_identifier);
+ir_unary_operator_t *ir_handle_unary_operator(unary_operator_t *source_unary_operator);
 char *new_temp_var_name();
 
 char *new_temp_var_name()
@@ -31,7 +31,7 @@ char *new_temp_var_name()
     return temp_var_name;
 }
 
-ir_unary_operator_t *handle_unary_operator(unary_operator_t *source_unary_operator)
+ir_unary_operator_t *ir_handle_unary_operator(unary_operator_t *source_unary_operator)
 {
     if (!source_unary_operator)
     {
@@ -61,7 +61,7 @@ ir_unary_operator_t *handle_unary_operator(unary_operator_t *source_unary_operat
     return ir_unary_operator;
 }
 
-ir_instruction_struct_t handle_expression(expression_t *source_expression)
+ir_instruction_struct_t ir_handle_expression(expression_t *source_expression)
 {
     if (!source_expression)
     {
@@ -97,9 +97,9 @@ ir_instruction_struct_t handle_expression(expression_t *source_expression)
             return NULL_INSTRUCTION_STRUCT;
         }
 
-        ir_instruction_struct_t ir_source_instruction_struct = handle_expression(source_unary_expression);
+        ir_instruction_struct_t ir_source_instruction_struct = ir_handle_expression(source_unary_expression);
 
-        ir_unary_operator_t *ir_unary_operator = handle_unary_operator(source_unary_operator);
+        ir_unary_operator_t *ir_unary_operator = ir_handle_unary_operator(source_unary_operator);
         if (!ir_unary_operator)
         {
             if (ir_source_instruction_struct.instructions)
@@ -198,14 +198,22 @@ ir_instruction_struct_t handle_expression(expression_t *source_expression)
         }
         else
         {
+            ir_instruction_t **new_instructions = (ir_instruction_t **)allocate(sizeof(ir_instruction_t *));
+            if (!new_instructions)
+            {
+                deallocate(ir_unary_instruction);
+                return NULL_INSTRUCTION_STRUCT;
+            }
+            new_instructions[0] = ir_unary_instruction;
+
             return (ir_instruction_struct_t){
-                .instructions = &ir_unary_instruction,
+                .instructions = new_instructions,
                 .instruction_count = 1};
         }
     }
     case EXPR_NESTED:
     {
-        return handle_expression(source_expression->value.nested_expr);
+        return ir_handle_expression(source_expression->value.nested_expr);
     }
     default:
     {
@@ -214,7 +222,7 @@ ir_instruction_struct_t handle_expression(expression_t *source_expression)
     }
 }
 
-ir_instruction_struct_t handle_statement(statement_t *source_statement)
+ir_instruction_struct_t ir_handle_statement(statement_t *source_statement)
 {
     if (!source_statement)
     {
@@ -234,7 +242,7 @@ ir_instruction_struct_t handle_statement(statement_t *source_statement)
             return NULL_INSTRUCTION_STRUCT;
         }
 
-        ir_instruction_struct_t ir_return_val_instruction_struct = handle_expression(source_return_expression);
+        ir_instruction_struct_t ir_return_val_instruction_struct = ir_handle_expression(source_return_expression);
         if (!ir_return_val_instruction_struct.instructions)
         {
             return NULL_INSTRUCTION_STRUCT;
@@ -285,7 +293,7 @@ ir_instruction_struct_t handle_statement(statement_t *source_statement)
     return NULL_INSTRUCTION_STRUCT;
 }
 
-ir_identifier_t *handle_identifier(identifier_t *source_identifier)
+ir_identifier_t *ir_handle_identifier(identifier_t *source_identifier)
 {
     ir_identifier_t *ir_identifier = (ir_identifier_t *)allocate(sizeof(ir_identifier_t));
     if (!ir_identifier)
@@ -304,7 +312,7 @@ ir_identifier_t *handle_identifier(identifier_t *source_identifier)
     return ir_identifier;
 }
 
-ir_program_t *handle_program(program_t *source_program)
+ir_program_t *ir_handle_program(program_t *source_program)
 {
     if (!source_program)
     {
@@ -319,7 +327,7 @@ ir_program_t *handle_program(program_t *source_program)
 
     ir_program->base.type = IR_NODE_PROGRAM;
     ir_program->base.parent = NULL;
-    ir_function_t *ir_function = handle_function(source_program->function);
+    ir_function_t *ir_function = ir_handle_function(source_program->function);
 
     if (!ir_function)
     {
@@ -332,7 +340,7 @@ ir_program_t *handle_program(program_t *source_program)
     return ir_program;
 }
 
-ir_function_t *handle_function(function_def_t *source_function)
+ir_function_t *ir_handle_function(function_def_t *source_function)
 {
     if (!source_function)
     {
@@ -346,7 +354,7 @@ ir_function_t *handle_function(function_def_t *source_function)
     }
 
     ir_function->base.type = IR_NODE_FUNCTION;
-    ir_identifier_t *ir_identifier = handle_identifier(source_function->name);
+    ir_identifier_t *ir_identifier = ir_handle_identifier(source_function->name);
 
     if (!ir_identifier)
     {
@@ -357,7 +365,7 @@ ir_function_t *handle_function(function_def_t *source_function)
 
     ir_function->name = ir_identifier;
 
-    ir_instruction_struct_t ir_instruction_struct = handle_statement(source_function->body);
+    ir_instruction_struct_t ir_instruction_struct = ir_handle_statement(source_function->body);
     ir_instruction_t **ir_instructions = ir_instruction_struct.instructions;
     if (!ir_instructions)
     {

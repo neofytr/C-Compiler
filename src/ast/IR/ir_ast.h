@@ -91,6 +91,14 @@ typedef struct ir_instruction_e
 typedef struct
 {
     ir_ast_node_t base;
+    ir_identifier_t *name;
+    ir_instruction_t **body;
+    size_t instruction_count;
+} ir_function_t;
+
+typedef struct
+{
+    ir_ast_node_t base;
     ir_function_t *function;
 } ir_program_t;
 
@@ -99,13 +107,5 @@ typedef struct
     ir_instruction_t **instructions;
     size_t instruction_count;
 } ir_instruction_struct_t;
-
-typedef struct
-{
-    ir_ast_node_t base;
-    ir_identifier_t *name;
-    ir_instruction_t **body;
-    size_t instruction_count;
-} ir_function_t;
 
 #endif /* F68732A3_D9B4_483E_A152_AB2FB4E19B12 */
