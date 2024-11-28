@@ -101,7 +101,7 @@ void visit_asm_operand(asm_operand_t *operand)
         printf("Visiting Immediate Operand: %d\n", operand->operand.immediate->value);
         break;
     case OPERAND_REGISTER:
-        printf("Visiting Register Operand: r%d\n", operand->operand.reg->reg_num);
+        printf("Visiting Register Operand: r%d\n", operand->operand.reg->reg_no);
         break;
     default:
         printf("Unknown Operand Type\n");
@@ -184,7 +184,6 @@ void visit_asm_identifier(asm_identifier_t *identifier)
 }
  */
 
-
 #include "../src/lexer/lexer.h"
 #include "../src/parser/parser.h"
 #include "../src/ir_gen/ir_generation.h"
@@ -219,6 +218,22 @@ void visit_ir_function(ir_function_t *ir_function)
     }
 }
 
+void visit_ir_unary_operator(ir_unary_operator_t *unary_operator)
+{
+    printf("Visiting IR Unary Operator\n");
+    switch (unary_operator->unary_op)
+    {
+    case IR_UNARY_BITWISE_COMPLEMENT:
+        printf("BITWISE_COMPLEMENT\n");
+        break;
+    case IR_UNARY_NEGATE:
+        printf("NEGATE\n");
+        break;
+    default:
+        break;
+    }
+}
+
 void visit_ir_instruction(ir_instruction_t *ir_instruction)
 {
     if (!ir_instruction)
@@ -238,6 +253,10 @@ void visit_ir_instruction(ir_instruction_t *ir_instruction)
         if (ir_instruction->instruction.unary_instr.source)
         {
             visit_ir_value(ir_instruction->instruction.unary_instr.source);
+        }
+        if (ir_instruction->instruction.unary_instr.unary_operator)
+        {
+            visit_ir_unary_operator(ir_instruction->instruction.unary_instr.unary_operator);
         }
         if (ir_instruction->instruction.unary_instr.destination)
         {

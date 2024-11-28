@@ -2,6 +2,7 @@
     "files.associations": {
         "string": "cpp",
         "cstdlib": "c",
-        "assembly_generation.h": "c"
+        "assembly_generation.h": "c",
+        "functional": "cpp"
     }
 }

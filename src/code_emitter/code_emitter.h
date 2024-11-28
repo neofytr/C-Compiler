@@ -119,7 +119,7 @@ bool emit_asm_instruction(asm_instruction_t *asm_instruction, FILE *output_file)
         if (asm_instruction->instr.mov->dst->type == OPERAND_REGISTER)
         {
             const char *reg_name_dst = map_val_to_reg_name(
-                asm_instruction->instr.mov->dst->operand.reg->reg_num);
+                asm_instruction->instr.mov->dst->operand.reg->reg_no);
 
             if (!reg_name_dst)
             {

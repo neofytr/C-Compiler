@@ -130,7 +130,7 @@ asm_instruction_t **handle_statement(statement_t *statement)
         {
             return NULL;
         }
-        reg->reg_num = 0; // assuming 0 is eax
+        reg->reg_no = 0; // assuming 0 is eax
         dst_operand->operand.reg = reg;
         dst_operand->base.parent = &mov_inst->base;
         mov->dst = dst_operand;
