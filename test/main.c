@@ -1,4 +1,4 @@
-/* #include "../src/lexer/lexer.h"
+#include "../src/lexer/lexer.h"
 #include "../src/parser/parser.h"
 #include "../src/assembly_gen/assembly_generation.h"
 #include "../src/code_emitter/code_emitter.h"
@@ -113,7 +113,7 @@ void visit_asm_identifier(asm_identifier_t *identifier)
     printf("Visiting Assembly Identifier: %s\n", identifier->name);
 }
 
-int main(int argc, char **argv)
+/* int main(int argc, char **argv)
 {
     if (argc != 2)
     {
@@ -183,6 +183,7 @@ int main(int argc, char **argv)
     return EXIT_SUCCESS;
 }
  */
+
 
 #include "../src/lexer/lexer.h"
 #include "../src/parser/parser.h"
@@ -300,15 +301,25 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
+    printf("Tokens:\n");
+    for (size_t i = 0; i < token_list.count; i++)
+    {
+        printf("Line %zu, Col %zu: %-15s '%s'\n",
+               token_list.tokens[i].line,
+               token_list.tokens[i].column,
+               token_type_to_string(token_list.tokens[i].type),
+               token_list.tokens[i].value);
+    }
+
     free(source);
 
     parser_t *parser = init_parser(token_list.tokens, token_list.count);
     program_t *ast = parse_program(parser);
 
-    if (!ast)
+    if (ast)
     {
-        printf("Parsing failed.\n");
-        return EXIT_FAILURE;
+        printf("AST Traversal:\n");
+        visit_program(ast);
     }
 
     ir_program_t *ir_program = ir_handle_program(ast);
