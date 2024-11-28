@@ -13,6 +13,11 @@ typedef struct asm_operand_ asm_operand_t;
 typedef struct asm_immediate_ asm_immediate_t;
 typedef struct asm_register_ asm_register_t;
 typedef struct asm_ast_node_ asm_ast_node_t;
+typedef struct asm_pseudo_ asm_pseudo_t;
+typedef struct asm_stack_ asm_stack_t;
+typedef struct asm_instruction_alloc_stack_ asm_instruction_alloc_stack_t;
+typedef struct asm_instruction_unary_ asm_instruction_unary_t;
+typedef struct asm_unary_operator_ asm_unary_operator_t;
 
 typedef enum
 {
@@ -50,7 +55,21 @@ struct asm_immediate_
 
 struct asm_register_
 {
-    int reg_num;
+    enum
+    {
+        REG_AX,
+        REG_R10,
+    } reg_no;
+};
+
+struct asm_pseudo_
+{
+    char *pseudo_name;
+};
+
+struct asm_stack_
+{
+    int offset;
 };
 
 struct asm_identifier_
@@ -67,13 +86,35 @@ struct asm_operand_
     {
         asm_immediate_t *immediate;
         asm_register_t *reg;
-    }operand;
+        asm_pseudo_t *pseudo;
+        asm_stack_t *stack;
+    } operand;
 };
 
 struct asm_instruction_mov_
 {
     asm_operand_t *src;
     asm_operand_t *dst;
+};
+
+struct asm_instruction_unary_
+{
+    asm_unary_operator_t *unary_operator;
+    asm_operand_t *operand;
+};
+
+struct asm_instruction_alloc_stack_
+{
+    int alloc_size;
+};
+
+struct asm_unary_operator_
+{
+    enum
+    {
+        UNARY_NEG,
+        UNARY_NOT,
+    } operator;
 };
 
 struct asm_instruction_ret_
@@ -88,6 +129,8 @@ struct asm_instruction_
     {
         asm_instruction_mov_t *mov;
         asm_instruction_ret_t *ret;
+        asm_instruction_unary_t *unary;
+        asm_instruction_alloc_stack_t *alloc_stack;
     } instr;
 };
 
