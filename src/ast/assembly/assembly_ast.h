@@ -57,8 +57,8 @@ struct asm_register_
 {
     enum
     {
-        REG_AX,
-        REG_R10,
+        ASM_REG_RAX,
+        ASM_REG_R10,
     } reg_no;
 };
 
@@ -70,7 +70,9 @@ struct asm_pseudo_
 struct asm_stack_
 {
     int offset;
-};
+}; // ultimately, we need to replace every pseudoreg with a location on the stack;
+// we represent those with the stack operand, which indicates the stack address at the
+// given offset from RBP; we'd represent the operand (RBP - 4) with AST node Stack(-4)
 
 struct asm_identifier_
 {
@@ -85,8 +87,9 @@ struct asm_operand_
     union
     {
         asm_immediate_t *immediate;
-        asm_register_t *reg;
-        asm_pseudo_t *pseudo;
+        asm_register_t *reg;  // represents a hardware register
+        asm_pseudo_t *pseudo; // lets us use an arbitrary identifier as a pseudoregister; we use this to
+        // refer to the temporary variables produced during IR generation
         asm_stack_t *stack;
     } operand;
 };
@@ -100,12 +103,12 @@ struct asm_instruction_mov_
 struct asm_instruction_unary_
 {
     asm_unary_operator_t *unary_operator;
-    asm_operand_t *operand;
+    asm_operand_t *operand; // is both the source and the destination operand
 };
 
 struct asm_instruction_alloc_stack_
 {
-    int alloc_size;
+    int alloc_size; // is the instruction sub rsp, alloc_size
 };
 
 struct asm_unary_operator_
