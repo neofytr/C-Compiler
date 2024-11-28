@@ -5,6 +5,8 @@
 #include "../../ast/IR/ir_ast.h"
 #include "../../allocator/allocator.h"
 
+#define MAX_INSTR_NO_IN_FXN 1024
+
 typedef struct
 {
     asm_instruction_t **instructions;
@@ -15,6 +17,11 @@ asm_function_t *handle_ir_function(ir_function_t *ir_function);
 asm_program_t *handle_ir_program(ir_program_t *ir_prorgam);
 asm_identifier_t *handle_ir_identifier(ir_identifier_t *ir_identifier);
 asm_instruction_struct_t handle_ir_instruction(ir_instruction_t *ir_instruction);
+
+asm_instruction_struct_t handle_ir_instruction(ir_instruction_t *ir_instruction)
+{
+    
+}
 
 asm_identifier_t *handle_ir_identifier(ir_identifier_t *ir_identifier)
 {
@@ -75,6 +82,9 @@ asm_function_t *handle_ir_function(ir_function_t *ir_function)
         return NULL;
     }
 
+    asm_instruction_t *asm_instruction_buffer[MAX_INSTR_NO_IN_FXN] = {0};
+    size_t total_asm_instruction_count = 0;
+
     size_t ir_instruction_count = ir_function->instruction_count;
     for (size_t counter = 0; counter < ir_instruction_count; counter++)
     {
@@ -85,7 +95,35 @@ asm_function_t *handle_ir_function(ir_function_t *ir_function)
         }
 
         asm_instruction_struct_t asm_instruction_struct = handle_ir_instruction(ir_instruction);
+        asm_instruction_t **asm_instructions = asm_instruction_struct.instructions;
+        size_t asm_instruction_count = asm_instruction_struct.instruction_count;
+
+        for (size_t asm_counter = 0; asm_counter < asm_instruction_count; asm_counter++)
+        {
+            asm_instruction_t *asm_instruction = asm_instructions[asm_counter];
+            if (!asm_instruction)
+            {
+                return NULL;
+            }
+
+            asm_instruction->base.parent = &(asm_function->base);
+        }
+
+        memcpy((void *)asm_instruction_buffer, (void *)*asm_instructions, asm_instruction_count * sizeof(asm_instruction_t *));
+        total_asm_instruction_count += asm_instruction_count;
+        deallocate(asm_instructions);
     }
+
+    asm_instruction_t **total_asm_instructions = (asm_instruction_t **)allocate(sizeof(asm_instruction_t *));
+    if (!total_asm_instructions)
+    {
+        return NULL;
+    }
+    memcpy((void *)*total_asm_instructions, (void *)asm_instruction_buffer, total_asm_instruction_count * sizeof(asm_instruction_t *));
+    asm_function->instructions = total_asm_instructions;
+    asm_function->instruction_count = total_asm_instruction_count;
+
+    return asm_function;
 }
 
 asm_program_t *handle_ir_program(ir_program_t *ir_program)
