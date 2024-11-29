@@ -6,8 +6,8 @@
 
 bool asm_second_pass(asm_program_t *asm_program, int *final_offset);
 bool replace_pseudoregisters(asm_program_t *asm_program);
-inline int create_new_offset(void);
-inline bool replace_pseudoregs_operand(asm_operand_t *asm_operand, hash_table_t *hash_table);
+static int create_new_offset(void);
+bool replace_pseudoregs_operand(asm_operand_t *asm_operand, hash_table_t *hash_table);
 
 bool asm_second_pass(asm_program_t *asm_program, int *final_offset)
 {
@@ -20,7 +20,7 @@ bool asm_second_pass(asm_program_t *asm_program, int *final_offset)
     return true;
 }
 
-inline bool replace_pseudoregs_operand(asm_operand_t *asm_operand, hash_table_t *hash_table)
+bool replace_pseudoregs_operand(asm_operand_t *asm_operand, hash_table_t *hash_table)
 {
     if (!asm_operand)
     {
@@ -40,18 +40,18 @@ inline bool replace_pseudoregs_operand(asm_operand_t *asm_operand, hash_table_t 
         hash_node_t *node = hash_table_search(hash_table, identifier);
         if (!node)
         {
-            asm_operand->operand.stack = {.offset = create_new_offset()};
+            asm_operand->operand.stack = (asm_stack_t){.offset = create_new_offset()};
         }
         else
         {
-            asm_operand->operand.stack = {.offset = node->offset};
+            asm_operand->operand.stack = (asm_stack_t){.offset = node->offset};
         }
     }
 
     return true;
 }
 
-inline int create_new_offset(void)
+static int create_new_offset(void)
 {
     static int current_offset = 0;
     return (current_offset -= 4);

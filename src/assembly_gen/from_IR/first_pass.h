@@ -220,6 +220,8 @@ asm_instruction_struct_t handle_ir_instruction(ir_instruction_t *ir_instruction)
         return result;
     }
     }
+
+    return NULL_INSTRUCTION_STRUCT_ASM;
 }
 
 asm_identifier_t *handle_ir_identifier(ir_identifier_t *ir_identifier)

@@ -14,6 +14,7 @@
 
 size_t temp_var_count = 0;
 
+ir_program_t *conv_ast_to_ir(program_t *source_program);
 ir_function_t *ir_handle_function(function_def_t *source_function);
 ir_instruction_struct_t ir_handle_statement(statement_t *source_statement);
 ir_instruction_struct_t ir_handle_expression(expression_t *source_expression);
@@ -21,6 +22,11 @@ ir_program_t *ir_handle_program(program_t *source_program);
 ir_identifier_t *ir_handle_identifier(identifier_t *source_identifier);
 ir_unary_operator_t *ir_handle_unary_operator(unary_operator_t *source_unary_operator);
 char *new_temp_var_name();
+
+ir_program_t *conv_ast_to_ir(program_t *source_program)
+{
+    return ir_handle_program(source_program);
+}
 
 char *new_temp_var_name()
 {
@@ -32,6 +38,11 @@ char *new_temp_var_name()
     }
 
     int r = snprintf(temp_var_name, MAX_TEMP_VAR_LENGTH, ".tmp%zu", temp_var_count++);
+    if (r > MAX_TEMP_VAR_LENGTH || r < 4)
+    {
+        deallocate(temp_var_name);
+        return NULL;
+    }
 
     return temp_var_name;
 }

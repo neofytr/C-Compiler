@@ -140,6 +140,7 @@ bool asm_insert_alloc_stack(asm_program_t *asm_program, int final_offset)
     }
 
     deallocate(asm_instructions);
+    new_asm_instructions[0] = asm_instruction_alloc_stack;
     new_asm_instructions[1]->base.parent = &(new_asm_instructions[0]->base);
 
     asm_function->instructions = new_asm_instructions;

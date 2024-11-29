@@ -11,6 +11,8 @@
         "limits": "cpp",
         "memory": "cpp",
         "new": "cpp",
-        "ranges": "cpp"
+        "ranges": "cpp",
+        "parser.h": "c",
+        "third_pass.h": "c"
     }
 }

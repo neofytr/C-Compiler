@@ -216,7 +216,6 @@ static bool add_token(token_list_t *list, const char *value, token_type_t type, 
 
 static bool lex_identifier(lexer_t *lexer, token_list_t *list)
 {
-    size_t start_pos = lexer->position;
     size_t start_column = lexer->column;
     char buffer[MAX_TOKEN_LENGTH] = {0};
     size_t length = 0;

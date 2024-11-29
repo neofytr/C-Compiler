@@ -2,6 +2,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include "./code_emitter/code_emitter.h"
+#include "./ir_gen/ir_generation.h"
+#include "./assembly_gen/from_IR/first_pass.h"
+#include "./assembly_gen/from_IR/second_pass.h"
+#include "./assembly_gen/from_IR/third_pass.h"
 #include "./parser/parser.h"
 
 /*
@@ -68,10 +72,31 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    asm_program_t *asm_program = generate_assembly_ast(ast);
+    ir_program_t *ir_program = conv_ast_to_ir(ast);
+    if (!ir_program)
+    {
+        fprintf(stderr, "Error: IR generation failed\n");
+        return EXIT_FAILURE;
+    }
+
+    asm_program_t *asm_program = asm_first_pass(ir_program);
     if (!asm_program)
     {
-        fprintf(stderr, "Error: Assembly generation failed.\n");
+        fprintf(stderr, "Error: First Assembly Generation pass failed\n");
+        return EXIT_FAILURE;
+    }
+
+    int final_offset = 0;
+
+    if (!asm_second_pass(asm_program, &final_offset))
+    {
+        fprintf(stderr, "Error: Second Assembly Generation pass failed\n");
+        return EXIT_FAILURE;
+    }
+
+    if (!asm_third_pass(asm_program, final_offset))
+    {
+        fprintf(stderr, "Error: Third Assembly Generation pass failed\n");
         return EXIT_FAILURE;
     }
 

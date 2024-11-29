@@ -3,7 +3,7 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include "../../allocator/allocator.h"
+#include "../allocator/allocator.h"
 
 #define NUM_BUCKETS 128 // should always be a power of two
 #define MAX_IDENTIFIER_LENGTH 256
