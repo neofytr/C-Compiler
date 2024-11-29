@@ -31,7 +31,7 @@ bool replace_pseudoregs_operand(asm_operand_t *asm_operand, hash_table_t *hash_t
     if (!asm_operand_type)
     {
         return false;
-    }
+    } // never initialize strings with NULL
 
     if (*asm_operand_type == OPERAND_PSEUDO)
     {

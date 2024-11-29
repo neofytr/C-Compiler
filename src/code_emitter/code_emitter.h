@@ -183,10 +183,21 @@ bool emit_mov_instruction(asm_instruction_t *instruction, FILE *output_file)
         break;
     }
 
-    if (fprintf(output_file, "    mov %s, %s\n", dst_str, src_str) < 0)
+    if (dst->type == OPERAND_STACK)
     {
-        fprintf(stderr, "Error writing mov instruction\n");
-        return false;
+        if (fprintf(output_file, "    mov qword %s, %s\n", dst_str, src_str) < 0)
+        {
+            fprintf(stderr, "Error writing mov instruction\n");
+            return false;
+        }
+    }
+    else
+    {
+        if (fprintf(output_file, "    mov %s, %s\n", dst_str, src_str) < 0)
+        {
+            fprintf(stderr, "Error writing mov instruction\n");
+            return false;
+        }
     }
 
     return true;
@@ -248,11 +259,23 @@ bool emit_unary_instruction(asm_instruction_t *instruction, FILE *output_file)
         return false;
     }
 
-    if (fprintf(output_file, "    %s %s\n", op_str, operand_str) < 0)
+    if (operand->type == OPERAND_STACK)
     {
-        fprintf(stderr, "Error writing unary instruction\n");
-        return false;
+        if (fprintf(output_file, "    %s qword %s\n", op_str, operand_str) < 0)
+        {
+            fprintf(stderr, "Error writing unary instruction\n");
+            return false;
+        }
     }
+    else
+    {
+        if (fprintf(output_file, "    %s %s\n", op_str, operand_str) < 0)
+        {
+            fprintf(stderr, "Error writing unary instruction\n");
+            return false;
+        }
+    }
+
     return true;
 }
 
