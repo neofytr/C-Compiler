@@ -47,6 +47,7 @@ typedef enum
     INSTRUCTION_MOV,
     INSTRUCTION_RET,
     INSTRUCTION_UNARY,
+    INSTRUCTION_ALLOCATE_STACK,
 } asm_instruction_type_t;
 
 struct asm_immediate_
