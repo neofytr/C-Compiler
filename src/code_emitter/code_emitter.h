@@ -1,64 +1,40 @@
-#ifndef FABD87FA_C040_443C_B25F_EE7BD4CA78EA
-#define FABD87FA_C040_443C_B25F_EE7BD4CA78EA
+#ifndef ASSEMBLY_EMITTER_H
+#define ASSEMBLY_EMITTER_H
 
 #include <stdio.h>
 #include <errno.h>
 #include <stdbool.h>
 #include "../assembly_gen/assembly_generation.h"
 
-/*
-
-The Stack Frame in x86-64:
-
-Each function has a frame on the run-time stack. This stack grows downwards from high addresses.
-The end of the input argument (top of the stack just before the call instruction (The RSP register
-just before the call instruction is executed))) shall be aligned on a 16 (32 or 64, if __m256 or __m512 is passed on stack)
-byte boundary. In other words, the stack needs to be 16 (32 or 64) byte aligned immediately
-before the call instruction is executed. Once control has been transferred to the function
-entry point, i.e., immediately after the return address has been pushed, RSP points to the
-return address, and the value of (rsp + 8) is a multiple of 16 (32 or 64).
-
-The 128-byte area beyond the location pointed to by %rsp is considered to be reserved
-and shall not be modified by signal or interrupt handlers.13 Therefore, functions may use
-this area for temporary data that is not needed across function calls. In particular, leaf
-functions may use this area for their entire stack frame, rather than adjusting the stack
-pointer in the prologue and epilogue. This area is known as the red zone.
-
-*/
+const char *map_register_name(asm_reg_no_t reg);
 
 FILE *create_output_file(const char *name);
-bool emit_asm_function(asm_function_t *asm_function, FILE *output_file);
-bool emit_asm_program(asm_program_t *asm_program, FILE *output_file);
-bool emit_asm_instruction(asm_instruction_t *asm_instruction, FILE *output_file);
+bool close_output_file(FILE *file);
 
-bool emit_asm(asm_program_t *asm_program, const char *output_file_name);
+bool emit_program_header(FILE *output_file);
+bool emit_function_prologue(asm_function_t *function, FILE *output_file);
+bool emit_function_epilogue(FILE *output_file);
 
-bool emit_asm(asm_program_t *asm_program, const char *output_file_name)
+bool emit_mov_instruction(asm_instruction_t *instruction, FILE *output_file);
+bool emit_ret_instruction(FILE *output_file);
+bool emit_unary_instruction(asm_instruction_t *instruction, FILE *output_file);
+bool emit_stack_allocation(asm_instruction_t *instruction, FILE *output_file);
+
+bool emit_asm_instruction(asm_instruction_t *instruction, FILE *output_file);
+bool emit_asm_function(asm_function_t *function, FILE *output_file);
+bool emit_asm_program(asm_program_t *program, const char *output_file_name);
+
+const char *map_register_name(asm_reg_no_t reg)
 {
-    FILE *output_file = create_output_file(output_file_name);
-    if (!output_file)
+    switch (reg)
     {
-        return false;
-    }
-
-    return emit_asm_program(asm_program, output_file);
-}
-
-const char *map_val_to_reg_name(int val)
-{
-    switch (val)
-    {
-    case 0:
-    {
-        return "eax";
-        break;
-    }
-
+    case ASM_REG_R10:
+        return "r10";
+    case ASM_REG_RAX:
+        return "rax";
     default:
-        break;
+        return "";
     }
-
-    return "";
 }
 
 FILE *create_output_file(const char *name)
@@ -73,71 +49,169 @@ FILE *create_output_file(const char *name)
     return output_file;
 }
 
-bool emit_asm_program(asm_program_t *asm_program, FILE *output_file)
+bool close_output_file(FILE *file)
 {
-    if (!asm_program || !output_file)
+    if (file)
     {
-        return false;
+        return fclose(file) == 0;
     }
-    return emit_asm_function(asm_program->function, output_file);
+    return false;
 }
 
-bool emit_asm_function(asm_function_t *asm_function, FILE *output_file)
+bool emit_program_header(FILE *output_file)
 {
-    if (!asm_function || !output_file)
+    fprintf(output_file, "section .text\n");
+    return true;
+}
+
+bool emit_function_prologue(asm_function_t *function, FILE *output_file)
+{
+    if (!function || !output_file)
     {
         return false;
     }
 
     fprintf(output_file, "global %s\n%s:\n",
-            asm_function->name->name, asm_function->name->name);
+            function->name->name, function->name->name);
+    fprintf(output_file, "    push rbp\n");
+    fprintf(output_file, "    mov rbp, rsp\n");
+    return true;
+}
 
-    for (size_t counter = 0; counter < asm_function->instruction_count; counter++)
+bool emit_function_epilogue(FILE *output_file)
+{
+    if (!output_file)
     {
-        if (!emit_asm_instruction(asm_function->instructions[counter], output_file))
+        return false;
+    }
+
+    fprintf(output_file, "    mov rsp, rbp\n");
+    fprintf(output_file, "    pop rbp\n");
+    fprintf(output_file, "    ret\n");
+    return true;
+}
+
+bool emit_mov_instruction(asm_instruction_t *instruction, FILE *output_file)
+{
+    if (!instruction || !output_file)
+    {
+        return false;
+    }
+
+    asm_operand_t *dst = instruction->instr.mov.dst;
+    asm_operand_t *src = instruction->instr.mov.src;
+
+    if (dst->type == OPERAND_REGISTER && src->type == OPERAND_IMMEDIATE)
+    {
+        const char *dst_reg = map_register_name(dst->operand.reg.reg_no);
+        int imm_value = src->operand.immediate.value;
+
+        fprintf(output_file, "    mov %s, %d\n", dst_reg, imm_value);
+        return true;
+    }
+
+    return false;
+}
+
+bool emit_ret_instruction(FILE *output_file)
+{
+    return emit_function_epilogue(output_file);
+}
+
+bool emit_unary_instruction(asm_instruction_t *instruction, FILE *output_file)
+{
+    if (!instruction || !output_file)
+    {
+        return false;
+    }
+
+    asm_unary_operator_enum_t op = instruction->instr.unary.unary_operator->op;
+    const char *op_str = (op == UNARY_NEG) ? "neg" : (op == UNARY_NOT) ? "not"
+                                                                       : NULL;
+
+    if (!op_str)
+    {
+        return false;
+    }
+
+    const char *operand_reg = map_register_name(
+        instruction->instr.unary.operand->operand.reg.reg_no);
+
+    fprintf(output_file, "    %s %s\n", op_str, operand_reg);
+    return true;
+}
+
+bool emit_stack_allocation(asm_instruction_t *instruction, FILE *output_file)
+{
+    if (!instruction || !output_file)
+    {
+        return false;
+    }
+
+    int alloc_size = instruction->instr.alloc_stack.alloc_size;
+    fprintf(output_file, "    sub rsp, %d\n", alloc_size);
+    return true;
+}
+
+bool emit_asm_instruction(asm_instruction_t *instruction, FILE *output_file)
+{
+    if (!instruction || !output_file)
+    {
+        return false;
+    }
+
+    switch (instruction->type)
+    {
+    case INSTRUCTION_MOV:
+        return emit_mov_instruction(instruction, output_file);
+    case INSTRUCTION_RET:
+        return emit_ret_instruction(output_file);
+    case INSTRUCTION_UNARY:
+        return emit_unary_instruction(instruction, output_file);
+    case INSTRUCTION_ALLOCATE_STACK:
+        return emit_stack_allocation(instruction, output_file);
+    default:
+        return false;
+    }
+}
+
+bool emit_asm_function(asm_function_t *function, FILE *output_file)
+{
+    if (!function || !output_file)
+    {
+        return false;
+    }
+
+    if (!emit_function_prologue(function, output_file))
+    {
+        return false;
+    }
+
+    for (size_t i = 0; i < function->instruction_count; i++)
+    {
+        if (!emit_asm_instruction(function->instructions[i], output_file))
         {
             return false;
         }
     }
+
     return true;
 }
 
-bool emit_asm_instruction(asm_instruction_t *asm_instruction, FILE *output_file)
+bool emit_asm_program(asm_program_t *program, const char *output_file_name)
 {
-    if (!asm_instruction || !output_file)
+    FILE *output_file = create_output_file(output_file_name);
+    if (!output_file)
     {
         return false;
     }
 
-    switch (asm_instruction->type)
-    {
-    case INSTRUCTION_RET:
-        fprintf(output_file, "  ret\n");
-        return true;
+    // emit_program_header(output_file);
 
-    case INSTRUCTION_MOV:
-        if (asm_instruction->instr.mov.dst->type == OPERAND_REGISTER)
-        {
-            const char *reg_name_dst = map_val_to_reg_name(
-                asm_instruction->instr.mov.dst->operand.reg.reg_no);
+    bool result = emit_asm_function(program->function, output_file);
+    close_output_file(output_file);
 
-            if (!reg_name_dst)
-            {
-                return false;
-            }
-
-            if (asm_instruction->instr.mov.src->type == OPERAND_IMMEDIATE)
-            {
-                int imm_src = asm_instruction->instr.mov.src->operand.immediate.value;
-                fprintf(output_file, "  mov %s, %d\n", reg_name_dst, imm_src);
-                return true;
-            }
-        }
-        return false;
-
-    default:
-        return false; // Unsupported instruction type
-    }
+    return result;
 }
 
-#endif
+#endif // ASSEMBLY_EMITTER_H
