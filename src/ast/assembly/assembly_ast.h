@@ -45,7 +45,8 @@ typedef enum
 typedef enum
 {
     INSTRUCTION_MOV,
-    INSTRUCTION_RET
+    INSTRUCTION_RET,
+    INSTRUCTION_UNARY,
 } asm_instruction_type_t;
 
 struct asm_immediate_
@@ -113,13 +114,15 @@ struct asm_instruction_alloc_stack_
     int alloc_size; // is the instruction sub rsp, alloc_size
 };
 
+typedef enum
+{
+    UNARY_NEG,
+    UNARY_NOT,
+} asm_unary_operator_enum_t;
+
 struct asm_unary_operator_
 {
-    enum
-    {
-        UNARY_NEG,
-        UNARY_NOT,
-    } operator;
+    asm_unary_operator_enum_t op;
 };
 
 struct asm_instruction_ret_
