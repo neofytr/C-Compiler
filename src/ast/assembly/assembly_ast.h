@@ -24,10 +24,8 @@ typedef enum
     ASM_NODE_PROGRAM,
     ASM_NODE_FUNCTION,
     ASM_NODE_IDENTIFIER,
-    ASM_NODE_INSTRUCTION_MOV,
-    ASM_NODE_INSTRUCTION_RET,
-    ASM_NODE_OPERAND_IMM,
-    ASM_NODE_OPERAND_REGISTER,
+    ASM_NODE_INSTRUCTION,
+    ASM_NODE_OPERAND,
 } asm_ast_node_type_t;
 
 struct asm_ast_node_
@@ -39,7 +37,9 @@ struct asm_ast_node_
 typedef enum
 {
     OPERAND_IMMEDIATE,
-    OPERAND_REGISTER
+    OPERAND_REGISTER,
+    OPERAND_PSEUDO,
+    OPERAND_STACK,
 } asm_operand_type_t;
 
 typedef enum
@@ -53,13 +53,15 @@ struct asm_immediate_
     int value;
 };
 
+typedef enum
+{
+    ASM_REG_RAX,
+    ASM_REG_R10,
+} asm_reg_no_t;
+
 struct asm_register_
 {
-    enum
-    {
-        ASM_REG_RAX,
-        ASM_REG_R10,
-    } reg_no;
+    asm_reg_no_t reg_no;
 };
 
 struct asm_pseudo_
@@ -86,11 +88,11 @@ struct asm_operand_
     asm_operand_type_t type;
     union
     {
-        asm_immediate_t *immediate;
-        asm_register_t *reg;  // represents a hardware register
-        asm_pseudo_t *pseudo; // lets us use an arbitrary identifier as a pseudoregister; we use this to
+        asm_immediate_t immediate;
+        asm_register_t reg;  // represents a hardware register
+        asm_pseudo_t pseudo; // lets us use an arbitrary identifier as a pseudoregister; we use this to
         // refer to the temporary variables produced during IR generation
-        asm_stack_t *stack;
+        asm_stack_t stack;
     } operand;
 };
 
@@ -130,10 +132,10 @@ struct asm_instruction_
     asm_instruction_type_t type;
     union
     {
-        asm_instruction_mov_t *mov;
-        asm_instruction_ret_t *ret;
-        asm_instruction_unary_t *unary;
-        asm_instruction_alloc_stack_t *alloc_stack;
+        asm_instruction_mov_t mov;
+        asm_instruction_ret_t ret;
+        asm_instruction_unary_t unary;
+        asm_instruction_alloc_stack_t alloc_stack;
     } instr;
 };
 

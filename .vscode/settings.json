@@ -3,6 +3,14 @@
         "string": "cpp",
         "cstdlib": "c",
         "assembly_generation.h": "c",
-        "functional": "cpp"
+        "functional": "cpp",
+        "bit": "cpp",
+        "compare": "cpp",
+        "cstddef": "cpp",
+        "optional": "cpp",
+        "limits": "cpp",
+        "memory": "cpp",
+        "new": "cpp",
+        "ranges": "cpp"
     }
 }

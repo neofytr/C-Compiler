@@ -58,7 +58,7 @@ asm_operand_t *handle_expression(expression_t *expression)
     {
     case EXPR_CONSTANT_INT:
         asm_operand->type = OPERAND_IMMEDIATE;
-        asm_operand->base.type = ASM_NODE_OPERAND_IMM;
+        asm_operand->base.type = ASM_NODE_OPERAND;
 
         asm_immediate_t *immediate = (asm_immediate_t *)allocate(sizeof(asm_immediate_t));
         if (!immediate)
@@ -66,7 +66,7 @@ asm_operand_t *handle_expression(expression_t *expression)
             return NULL;
         }
         immediate->value = expression->value.constant_int;
-        asm_operand->operand.immediate = immediate;
+        asm_operand->operand.immediate = *immediate;
         break;
 
     default:
@@ -98,7 +98,7 @@ asm_instruction_t **handle_statement(statement_t *statement)
         {
             return NULL;
         }
-        mov_inst->base.type = ASM_NODE_INSTRUCTION_MOV;
+        mov_inst->base.type = ASM_NODE_INSTRUCTION;
         mov_inst->type = INSTRUCTION_MOV;
 
         asm_instruction_mov_t *mov = (asm_instruction_mov_t *)allocate(sizeof(asm_instruction_mov_t));
@@ -107,7 +107,7 @@ asm_instruction_t **handle_statement(statement_t *statement)
             return NULL;
         }
 
-        mov_inst->instr.mov = mov;
+        mov_inst->instr.mov = *mov;
 
         asm_operand_t *src_operand = handle_expression(statement->value.return_expr);
         if (!src_operand)
@@ -122,7 +122,7 @@ asm_instruction_t **handle_statement(statement_t *statement)
         {
             return NULL;
         }
-        dst_operand->base.type = ASM_NODE_OPERAND_REGISTER;
+        dst_operand->base.type = ASM_NODE_OPERAND;
         dst_operand->type = OPERAND_REGISTER;
 
         asm_register_t *reg = (asm_register_t *)allocate(sizeof(asm_register_t));
@@ -131,7 +131,7 @@ asm_instruction_t **handle_statement(statement_t *statement)
             return NULL;
         }
         reg->reg_no = 0; // assuming 0 is eax
-        dst_operand->operand.reg = reg;
+        dst_operand->operand.reg = *reg;
         dst_operand->base.parent = &mov_inst->base;
         mov->dst = dst_operand;
 
@@ -142,7 +142,7 @@ asm_instruction_t **handle_statement(statement_t *statement)
         {
             return NULL;
         }
-        ret_inst->base.type = ASM_NODE_INSTRUCTION_RET;
+        ret_inst->base.type = ASM_NODE_INSTRUCTION;
         ret_inst->type = INSTRUCTION_RET;
 
         asm_instruction_ret_t *ret = (asm_instruction_ret_t *)allocate(sizeof(asm_instruction_ret_t));
@@ -151,7 +151,7 @@ asm_instruction_t **handle_statement(statement_t *statement)
             return NULL;
         }
 
-        ret_inst->instr.ret = ret;
+        ret_inst->instr.ret = *ret;
         instructions[1] = ret_inst;
         break;
     }

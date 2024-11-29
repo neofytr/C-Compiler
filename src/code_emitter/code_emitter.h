@@ -116,19 +116,19 @@ bool emit_asm_instruction(asm_instruction_t *asm_instruction, FILE *output_file)
         return true;
 
     case INSTRUCTION_MOV:
-        if (asm_instruction->instr.mov->dst->type == OPERAND_REGISTER)
+        if (asm_instruction->instr.mov.dst->type == OPERAND_REGISTER)
         {
             const char *reg_name_dst = map_val_to_reg_name(
-                asm_instruction->instr.mov->dst->operand.reg->reg_no);
+                asm_instruction->instr.mov.dst->operand.reg.reg_no);
 
             if (!reg_name_dst)
             {
                 return false;
             }
 
-            if (asm_instruction->instr.mov->src->type == OPERAND_IMMEDIATE)
+            if (asm_instruction->instr.mov.src->type == OPERAND_IMMEDIATE)
             {
-                int imm_src = asm_instruction->instr.mov->src->operand.immediate->value;
+                int imm_src = asm_instruction->instr.mov.src->operand.immediate.value;
                 fprintf(output_file, "  mov %s, %d\n", reg_name_dst, imm_src);
                 return true;
             }

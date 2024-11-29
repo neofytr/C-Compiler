@@ -82,8 +82,8 @@ void visit_asm_instruction(asm_instruction_t *asm_instruction)
     {
     case INSTRUCTION_MOV:
         printf("Visiting MOV Instruction\n");
-        visit_asm_operand(asm_instruction->instr.mov->src);
-        visit_asm_operand(asm_instruction->instr.mov->dst);
+        visit_asm_operand(asm_instruction->instr.mov.src);
+        visit_asm_operand(asm_instruction->instr.mov.dst);
         break;
     case INSTRUCTION_RET:
         printf("Visiting RET Instruction\n");
@@ -98,10 +98,10 @@ void visit_asm_operand(asm_operand_t *operand)
     switch (operand->type)
     {
     case OPERAND_IMMEDIATE:
-        printf("Visiting Immediate Operand: %d\n", operand->operand.immediate->value);
+        printf("Visiting Immediate Operand: %d\n", operand->operand.immediate.value);
         break;
     case OPERAND_REGISTER:
-        printf("Visiting Register Operand: r%d\n", operand->operand.reg->reg_no);
+        printf("Visiting Register Operand: r%d\n", operand->operand.reg.reg_no);
         break;
     default:
         printf("Unknown Operand Type\n");
