@@ -4,9 +4,21 @@
 #include "../../ast/assembly/assembly_ast.h"
 #include "../../hash_table/hash_table.h"
 
-bool replace_pseudoregisters(asm_program_t *asm_program, int *final_offset);
+bool asm_second_pass(asm_program_t *asm_program, int *final_offset);
+bool replace_pseudoregisters(asm_program_t *asm_program);
 inline int create_new_offset(void);
 inline bool replace_pseudoregs_operand(asm_operand_t *asm_operand, hash_table_t *hash_table);
+
+bool asm_second_pass(asm_program_t *asm_program, int *final_offset)
+{
+    if (!replace_pseudoregisters(asm_program))
+    {
+        return false;
+    }
+
+    *final_offset = create_new_offset() + 4;
+    return true;
+}
 
 inline bool replace_pseudoregs_operand(asm_operand_t *asm_operand, hash_table_t *hash_table)
 {
@@ -45,7 +57,7 @@ inline int create_new_offset(void)
     return (current_offset -= 4);
 }
 
-bool replace_pseudoregisters(asm_program_t *asm_program, int *final_offset)
+bool replace_pseudoregisters(asm_program_t *asm_program)
 {
     if (!asm_program)
     {
@@ -140,7 +152,6 @@ bool replace_pseudoregisters(asm_program_t *asm_program, int *final_offset)
         }
     }
 
-    *final_offset = create_new_offset() + 4;
     return true;
 }
 

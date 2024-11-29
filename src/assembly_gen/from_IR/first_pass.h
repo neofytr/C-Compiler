@@ -15,10 +15,16 @@ typedef struct
 
 #define NULL_INSTRUCTION_STRUCT_ASM ((asm_instruction_struct_t){0})
 
+asm_program_t *asm_first_pass(ir_program_t *ir_program);
 asm_function_t *handle_ir_function(ir_function_t *ir_function);
 asm_program_t *handle_ir_program(ir_program_t *ir_prorgam);
 asm_identifier_t *handle_ir_identifier(ir_identifier_t *ir_identifier);
 asm_instruction_struct_t handle_ir_instruction(ir_instruction_t *ir_instruction);
+
+asm_program_t *asm_first_pass(ir_program_t *ir_program)
+{
+    return handle_ir_program(ir_program);
+}
 
 asm_instruction_struct_t handle_ir_instruction(ir_instruction_t *ir_instruction)
 {
