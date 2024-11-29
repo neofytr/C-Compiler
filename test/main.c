@@ -2,6 +2,7 @@
 #include "../src/parser/parser.h"
 #include "../src/assembly_gen/assembly_generation.h"
 #include "../src/code_emitter/code_emitter.h"
+#include "../src/assembly_gen/from_IR/first_pass.h"
 
 // AST Visitors
 void visit_program(program_t *program);
@@ -88,6 +89,10 @@ void visit_asm_instruction(asm_instruction_t *asm_instruction)
     case INSTRUCTION_RET:
         printf("Visiting RET Instruction\n");
         break;
+    case INSTRUCTION_UNARY:
+        printf("Visiting Unary Instruction\n");
+        printf("Unary operand: %s\n", asm_instruction->instr.unary.operand->operand.pseudo.pseudo_name);
+        printf("Unary operator: %s\n", asm_instruction->instr.unary.unary_operator->op == UNARY_NEG ? "UNARY_NEG" : "UNARY_BITWISE_COMPLEMENT");
     default:
         printf("Unknown Instruction Type\n");
     }
@@ -103,6 +108,8 @@ void visit_asm_operand(asm_operand_t *operand)
     case OPERAND_REGISTER:
         printf("Visiting Register Operand: r%d\n", operand->operand.reg.reg_no);
         break;
+    case OPERAND_PSEUDO:
+        printf("Visiting Pseudo Operand: %s\n", operand->operand.pseudo.pseudo_name);
     default:
         printf("Unknown Operand Type\n");
     }
@@ -351,6 +358,16 @@ int main(int argc, char **argv)
 
     printf("IR AST Traversal:\n");
     visit_ir_program(ir_program);
+
+    asm_program_t *asm_program = handle_ir_program(ir_program);
+    if (!asm_program)
+    {
+        printf("ASM generation failed.\n");
+        return EXIT_FAILURE;
+    }
+
+    printf("ASM AST Traversal\n");
+    visit_asm_program(asm_program);
 
     return EXIT_SUCCESS;
 }

@@ -27,7 +27,7 @@ deallocator_t deallocate =
 #ifndef CUSTOM_ALLOCATOR
     default_deallocator;
 #else
-    custom_allocator;
+    custom_deallocator;
 #endif
 
 void *default_allocator(size_t size)
