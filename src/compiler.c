@@ -100,7 +100,7 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    if (!emit_asm(asm_program, output_file))
+    if (!emit_asm_program(asm_program, output_file))
     {
         fprintf(stderr, "Error: Failed to write output to '%s'.\n", output_file);
         return EXIT_FAILURE;

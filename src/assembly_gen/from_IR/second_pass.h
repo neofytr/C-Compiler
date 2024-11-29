@@ -40,7 +40,9 @@ bool replace_pseudoregs_operand(asm_operand_t *asm_operand, hash_table_t *hash_t
         hash_node_t *node = hash_table_search(hash_table, identifier);
         if (!node)
         {
-            asm_operand->operand.stack = (asm_stack_t){.offset = create_new_offset()};
+            int offset = create_new_offset();
+            asm_operand->operand.stack = (asm_stack_t){.offset = offset};
+            hash_table_insert(hash_table, identifier, offset);
         }
         else
         {
@@ -54,7 +56,8 @@ bool replace_pseudoregs_operand(asm_operand_t *asm_operand, hash_table_t *hash_t
 static int create_new_offset(void)
 {
     static int current_offset = 0;
-    return (current_offset -= 4);
+    current_offset -= 4;
+    return current_offset;
 }
 
 bool replace_pseudoregisters(asm_program_t *asm_program)
