@@ -34,14 +34,14 @@ neocc <source_file> [-o <output_file>]
 
 ### Examples
 
-1. Compile `example.src` and output to `output.asm` (default):
+1. Compile `example.c` and output to `output.asm` (default):
    ```bash
-   ./bin/neocc example.src
+   ./bin/neocc example.c
    ```
 
-2. Compile `example.src` and specify the output file:
+2. Compile `example.c` and specify the output file:
    ```bash
-   ./bin/neocc example.src -o custom_output.asm
+   ./bin/neocc example.c -o custom_output.asm
    ```
 
 ## Contributing
