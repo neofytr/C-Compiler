@@ -6,7 +6,7 @@
 
 bool replace_pseudoregisters(asm_program_t *asm_program);
 inline int create_new_offset(void);
-inline bool replace_pseudoregs_operand(asm_operand_t *asm_operand);
+inline bool replace_pseudoregs_operand(asm_operand_t *asm_operand, hash_table_t *hash_table);
 
 inline bool replace_pseudoregs_operand(asm_operand_t *asm_operand, hash_table_t *hash_table)
 {
@@ -16,6 +16,11 @@ inline bool replace_pseudoregs_operand(asm_operand_t *asm_operand, hash_table_t 
     }
 
     asm_operand_type_t *asm_operand_type = &asm_operand->type;
+    if (!asm_operand_type)
+    {
+        return false;
+    }
+
     if (*asm_operand_type == OPERAND_PSEUDO)
     {
         *asm_operand_type = OPERAND_STACK;
@@ -83,7 +88,17 @@ bool replace_pseudoregisters(asm_program_t *asm_program)
         case INSTRUCTION_UNARY:
         {
             asm_instruction_unary_t *asm_instruction_unary = &asm_instruction->instr.unary;
+            if (!asm_instruction_unary)
+            {
+                destroy_hash_table(hash_table);
+                return false;
+            }
             asm_operand_t *asm_unary_operand = asm_instruction_unary->operand;
+            if (!asm_unary_operand)
+            {
+                destroy_hash_table(hash_table);
+                return false;
+            }
 
             if (!replace_pseudoregs_operand(asm_unary_operand, hash_table))
             {
@@ -96,10 +111,25 @@ bool replace_pseudoregisters(asm_program_t *asm_program)
         case INSTRUCTION_MOV:
         {
             asm_instruction_mov_t *asm_instruction_mov = &asm_instruction->instr.mov;
+            if (!asm_instruction_mov)
+            {
+                destroy_hash_table(hash_table);
+                return false;
+            }
             asm_operand_t *asm_mov_src = asm_instruction_mov->src;
+            if (!asm_mov_src)
+            {
+                destroy_hash_table(hash_table);
+                return false;
+            }
             asm_operand_t *asm_mov_dst = asm_instruction_mov->dst;
+            if (!asm_mov_dst)
+            {
+                destroy_hash_table(hash_table);
+                return false;
+            }
 
-            if (!replace_pseudoregs_operand(asm_mov_dst) || !replace_pseudoregs_operand(asm_mov_dst))
+            if (!replace_pseudoregs_operand(asm_mov_dst, hash_table) || !replace_pseudoregs_operand(asm_mov_src, hash_table))
             {
                 destroy_hash_table(hash_table);
                 return false;
