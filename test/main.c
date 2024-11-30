@@ -10,6 +10,8 @@ void visit_function_def(function_def_t *function);
 void visit_statement(statement_t *statement);
 void visit_expression(expression_t *expression);
 void visit_identifier(identifier_t *identifier);
+void visit_binary_operator(binary_operator_t *binary_op);
+void visit_unary_operator(unary_operator_t *unary_op);
 
 // Assembly AST Visitors
 void visit_asm_program(asm_program_t *asm_program);
@@ -20,52 +22,185 @@ void visit_asm_identifier(asm_identifier_t *identifier);
 
 void visit_program(program_t *program)
 {
+    if (!program)
+    {
+        printf("Visiting NULL Program\n");
+        return;
+    }
     printf("Visiting Program\n");
-    visit_function_def(program->function);
+    if (program->function)
+    {
+        visit_function_def(program->function);
+    }
 }
 
 void visit_function_def(function_def_t *function)
 {
-    printf("Visiting Function: %s\n", function->name->name);
-    visit_identifier(function->name);
-    visit_statement(function->body);
+    if (!function)
+    {
+        printf("Visiting NULL Function\n");
+        return;
+    }
+    printf("Visiting Function\n");
+
+    if (function->name)
+    {
+        visit_identifier(function->name);
+    }
+
+    if (function->body)
+    {
+        visit_statement(function->body);
+    }
 }
 
 void visit_statement(statement_t *statement)
 {
+    if (!statement)
+    {
+        printf("Visiting NULL Statement\n");
+        return;
+    }
+
     switch (statement->stmt_type)
     {
     case STMT_RETURN:
         printf("Visiting Return Statement\n");
-        visit_expression(statement->value.return_expr);
+        if (statement->value.return_expr)
+        {
+            visit_expression(statement->value.return_expr);
+        }
         break;
     default:
-        printf("Unknown Statement Type\n");
+        printf("Unknown Statement Type: %d\n", statement->stmt_type);
     }
 }
 
 void visit_expression(expression_t *expression)
 {
+    if (!expression)
+    {
+        printf("Visiting NULL Expression\n");
+        return;
+    }
+
     switch (expression->expr_type)
     {
     case EXPR_CONSTANT_INT:
         printf("Visiting Constant Expression: %d\n", expression->value.constant_int);
         break;
+    case EXPR_BINARY:
+        printf("Visiting Binary Expression\n");
+        if (expression->value.binary.op)
+        {
+            visit_binary_operator(expression->value.binary.op);
+        }
+        if (expression->value.binary.left_expr)
+        {
+            visit_expression(expression->value.binary.left_expr);
+        }
+        if (expression->value.binary.right_expr)
+        {
+            visit_expression(expression->value.binary.right_expr);
+        }
+        break;
+    case EXPR_NESTED:
+        printf("Visiting Nested Expression\n");
+        if (expression->value.nested_expr)
+        {
+            visit_expression(expression->value.nested_expr);
+        }
+        break;
+    case EXPR_UNARY:
+        printf("Visiting Unary Expression\n");
+        if (expression->value.unary.unary_operator)
+        {
+            visit_unary_operator(expression->value.unary.unary_operator);
+        }
+        if (expression->value.unary.expression)
+        {
+            visit_expression(expression->value.unary.expression);
+        }
+        break;
     default:
-        printf("Unknown Expression Type\n");
+        printf("Unknown Expression Type: %d\n", expression->expr_type);
     }
 }
 
 void visit_identifier(identifier_t *identifier)
 {
+    if (!identifier)
+    {
+        printf("Visiting NULL Identifier\n");
+        return;
+    }
     printf("Visiting Identifier: %s\n", identifier->name);
+}
+
+void visit_binary_operator(binary_operator_t *binary_op)
+{
+    if (!binary_op)
+    {
+        printf("Visiting NULL Binary Operator\n");
+        return;
+    }
+
+    switch (binary_op->binary_operator)
+    {
+    case BINARY_ADD:
+        printf("Visiting Binary Addition Operator\n");
+        break;
+    case BINARY_SUB:
+        printf("Visiting Binary Subtraction Operator\n");
+        break;
+    case BINARY_MUL:
+        printf("Visiting Binary Multiplication Operator\n");
+        break;
+    case BINARY_DIV:
+        printf("Visiting Binary Division Operator\n");
+        break;
+    case BINARY_REM:
+        printf("Visiting Binary Remainder Operator\n");
+        break;
+    default:
+        printf("Unknown Binary Operator Type: %d\n", binary_op->binary_operator);
+    }
+}
+
+void visit_unary_operator(unary_operator_t *unary_op)
+{
+    if (!unary_op)
+    {
+        printf("Visiting NULL Unary Operator\n");
+        return;
+    }
+
+    switch (unary_op->op)
+    {
+    case NEGATE:
+        printf("Visiting Unary Negation Operator\n");
+        break;
+    case BITWISE_COMPLEMENT:
+        printf("Visiting Bitwise Complement Operator\n");
+        break;
+    default:
+        printf("Unknown Unary Operator Type: %d\n", unary_op->op);
+    }
 }
 
 // Assembly AST Visitors
 void visit_asm_program(asm_program_t *asm_program)
 {
+    if (!asm_program)
+    {
+        printf("Visiting NULL Assembly Program\n");
+        return;
+    }
     printf("Visiting Assembly Program\n");
-    visit_asm_function(asm_program->function);
+    if (asm_program->function)
+    {
+        visit_asm_function(asm_program->function);
+    }
 }
 
 void visit_asm_function(asm_function_t *asm_function)

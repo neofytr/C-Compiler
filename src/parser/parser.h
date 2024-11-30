@@ -14,11 +14,21 @@ typedef struct parser_
     size_t token_count;
 } parser_t;
 
+typedef enum
+{
+    PRECEDENCE_ADD = 0,
+    PRECEDENCE_SUB = 0,
+    PRECEDENCE_MUL = 1,
+    PRECEDENCE_DIV = 1,
+    PRECEDENCE_REM = 1,
+    MIN_PRECEDENCE = PRECEDENCE_ADD,
+} operator_precedence_t;
+
 parser_t *init_parser(token_t *tokens, size_t token_count);
 program_t *parse_program(parser_t *parser);
 function_def_t *parse_function(parser_t *parser);
 statement_t *parse_statement(parser_t *parser);
-expression_t *parse_expression(parser_t *parser);
+expression_t *parse_expression(parser_t *parser, operator_precedence_t min_precedence);
 expression_t *parse_factor(parser_t *parser);
 identifier_t *parse_identifier(parser_t *parser);
 
@@ -27,6 +37,33 @@ static inline token_t *advance_token(parser_t *parser);
 static bool check_token(parser_t *parser, token_type_t expected);
 static bool expect_token(parser_t *parser, token_type_t expected, const char *error_msg);
 static void error(const char *message, size_t line, size_t column);
+static operator_precedence_t token_precedence(token_t *token);
+
+static operator_precedence_t token_precedence(token_t *token)
+{
+    if (!token)
+    {
+        return -1;
+    }
+
+    switch (token->type)
+    {
+    case TOKEN_OPERATOR_PLUS:
+        return PRECEDENCE_ADD;
+    case TOKEN_OPERATOR_NEGATION:
+        return PRECEDENCE_SUB;
+    case TOKEN_OPERATOR_MUL:
+        return PRECEDENCE_MUL;
+    case TOKEN_OPERATOR_DIV:
+        return PRECEDENCE_DIV;
+    case TOKEN_OPERATOR_REM:
+        return PRECEDENCE_REM;
+    default:
+        return -1;
+    }
+
+    return -1;
+}
 
 static void error(const char *message, size_t line, size_t column)
 {
@@ -154,13 +191,28 @@ binary_operator_t *parse_binary_operator(parser_t *parser)
         binary_operator->binary_operator = BINARY_SUB;
         break;
     }
+    case TOKEN_OPERATOR_MUL:
+    {
+        binary_operator->binary_operator = BINARY_MUL;
+        break;
+    }
+    case TOKEN_OPERATOR_DIV:
+    {
+        binary_operator->binary_operator = BINARY_DIV;
+        break;
+    }
+    case TOKEN_OPERATOR_REM:
+    {
+        binary_operator->binary_operator = BINARY_REM;
+        break;
+    }
     }
 
     advance_token(parser);
     return binary_operator;
 }
 
-expression_t *parse_expression(parser_t *parser)
+expression_t *parse_expression(parser_t *parser, operator_precedence_t min_precedence)
 {
     if (!parser)
     {
@@ -182,48 +234,59 @@ expression_t *parse_expression(parser_t *parser)
     left->base.location.column = curr_tok->column;
     left->base.location.line = curr_tok->line;
 
-    expression_t *left_prev;
-
     token_t *next_token = peek_token(parser);
     while (next_token &&
            (next_token->type == TOKEN_OPERATOR_PLUS ||
-            next_token->type == TOKEN_OPERATOR_NEGATION))
+            next_token->type == TOKEN_OPERATOR_NEGATION ||
+            next_token->type == TOKEN_OPERATOR_DIV ||
+            next_token->type == TOKEN_OPERATOR_MUL ||
+            next_token->type == TOKEN_OPERATOR_REM) &&
+           token_precedence(next_token) >= min_precedence)
     {
-        left_prev = left;
+        expression_t *binary_expr = (expression_t *)allocate(sizeof(expression_t));
+        if (!binary_expr)
+        {
+            return NULL;
+        }
+
+        binary_expr->base.type = NODE_EXPRESSION;
+        binary_expr->base.location.line = next_token->line;
+        binary_expr->base.location.column = next_token->column;
+        binary_expr->base.parent = NULL;
+        binary_expr->expr_type = EXPR_BINARY;
 
         binary_operator_t *bin_op = parse_binary_operator(parser);
         if (!bin_op)
         {
+            free(binary_expr);
             return NULL;
         }
         bin_op->base.location.column = next_token->column;
         bin_op->base.location.line = next_token->line;
 
         curr_tok = peek_token(parser);
-        expression_t *right = parse_factor(parser);
+        expression_t *right = parse_expression(parser, token_precedence(curr_tok) + 1);
         if (!right)
         {
+            free(binary_expr);
+            free(bin_op);
             return NULL;
         }
-        right->base.location.column = curr_tok->column;
-        right->base.location.line = curr_tok->line;
 
-        binary_t binary_expr = (binary_t){
-            .op = bin_op,
-            .left_expr = left_prev,
-            .right_expr = right};
+        binary_expr->value.binary.op = bin_op;
+        binary_expr->value.binary.left_expr = left;
+        binary_expr->value.binary.right_expr = right;
 
-        left->expr_type = EXPR_BINARY;
-        left->value.binary = binary_expr;
+        bin_op->base.parent = &(binary_expr->base);
+        right->base.parent = &(binary_expr->base);
+        left->base.parent = &(binary_expr->base);
 
-        bin_op->base.parent = &left->base;
-        right->base.parent = &(left->base);
-        left_prev->base.parent = &(left->base);
+        left = binary_expr;
 
         next_token = peek_token(parser);
     }
 
-    return left; // top level binary expression; parent handled by the calling function
+    return left;
 }
 
 expression_t *parse_factor(parser_t *parser)
@@ -270,7 +333,7 @@ expression_t *parse_factor(parser_t *parser)
 
         static bool expecting_closing_paren = false;
 
-        expression_t *nested_expression = parse_expression(parser);
+        expression_t *nested_expression = parse_expression(parser, MIN_PRECEDENCE);
         if (!nested_expression)
         {
             token_t *current_token = peek_token(parser);
