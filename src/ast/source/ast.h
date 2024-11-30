@@ -13,6 +13,8 @@ typedef struct identifier_t identifier_t;
 typedef struct program_t program_t;
 typedef struct unary_t unary_t;
 typedef struct unary_operator_t unary_operator_t;
+typedef struct binary_t binary_t;
+typedef struct binary_operator_t binary_operator_t;
 
 /**
  * Enum representing different types of AST nodes
@@ -26,6 +28,7 @@ typedef enum ast_node_type_e
     NODE_EXPRESSION,
     NODE_IDENTIFIER,
     NODE_UNARY_OP,
+    NODE_BINARY_OP,
 } ast_node_type_t;
 
 /**
@@ -37,6 +40,7 @@ typedef enum expression_type_e
     EXPR_CONSTANT_INT,
     EXPR_UNARY,
     EXPR_NESTED,
+    EXPR_BINARY,
 } expression_type_t;
 
 /**
@@ -100,6 +104,29 @@ struct identifier_t
 /**
  * Expression node supporting different expression types
  */
+
+typedef enum
+{
+    BINARY_ADD,
+    BINARY_SUB,
+    BINARY_MUL,
+    BINARY_DIV,
+    BINARY_REM,
+} binary_operator_type_t;
+
+struct binary_operator_t
+{
+    ast_node_t base;
+    binary_operator_type_t binary_operator;
+};
+
+struct binary_t
+{
+    binary_operator_t *op;
+    expression_t *left_expr;
+    expression_t *right_expr;
+};
+
 struct expression_t
 {
     ast_node_t base;
@@ -109,6 +136,7 @@ struct expression_t
         unary_t unary;
         int constant_int;
         expression_t *nested_expr;
+        binary_t binary;
     } value;
 };
 

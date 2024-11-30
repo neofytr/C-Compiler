@@ -19,6 +19,7 @@ program_t *parse_program(parser_t *parser);
 function_def_t *parse_function(parser_t *parser);
 statement_t *parse_statement(parser_t *parser);
 expression_t *parse_expression(parser_t *parser);
+expression_t *parse_factor(parser_t *parser);
 identifier_t *parse_identifier(parser_t *parser);
 
 static inline token_t *peek_token(parser_t *parser);
@@ -120,8 +121,117 @@ identifier_t *parse_identifier(parser_t *parser)
     return identifier;
 }
 
+binary_operator_t *parse_binary_operator(parser_t *parser)
+{
+    if (!parser)
+    {
+        return NULL;
+    }
+
+    binary_operator_t *binary_operator = (binary_operator_t *)allocate(sizeof(binary_operator_t));
+    if (!binary_operator)
+    {
+        return NULL;
+    }
+
+    binary_operator->base.type = NODE_BINARY_OP;
+
+    token_t *curr_tok = peek_token(parser);
+    if (!curr_tok)
+    {
+        return NULL;
+    }
+
+    switch (curr_tok->type)
+    {
+    case TOKEN_OPERATOR_PLUS:
+    {
+        binary_operator->binary_operator = BINARY_ADD;
+        break;
+    }
+    case TOKEN_OPERATOR_NEGATION:
+    {
+        binary_operator->binary_operator = BINARY_SUB;
+        break;
+    }
+    }
+
+    advance_token(parser);
+    return binary_operator;
+}
+
 expression_t *parse_expression(parser_t *parser)
 {
+    if (!parser)
+    {
+        return NULL;
+    }
+
+    token_t *curr_tok = peek_token(parser);
+    if (!curr_tok)
+    {
+        return NULL;
+    }
+
+    expression_t *left = parse_factor(parser);
+    if (!left)
+    {
+        return NULL;
+    }
+
+    left->base.location.column = curr_tok->column;
+    left->base.location.line = curr_tok->line;
+
+    expression_t *left_prev;
+
+    token_t *next_token = peek_token(parser);
+    while (next_token &&
+           (next_token->type == TOKEN_OPERATOR_PLUS ||
+            next_token->type == TOKEN_OPERATOR_NEGATION))
+    {
+        left_prev = left;
+
+        binary_operator_t *bin_op = parse_binary_operator(parser);
+        if (!bin_op)
+        {
+            return NULL;
+        }
+        bin_op->base.location.column = next_token->column;
+        bin_op->base.location.line = next_token->line;
+
+        curr_tok = peek_token(parser);
+        expression_t *right = parse_factor(parser);
+        if (!right)
+        {
+            return NULL;
+        }
+        right->base.location.column = curr_tok->column;
+        right->base.location.line = curr_tok->line;
+
+        binary_t binary_expr = (binary_t){
+            .op = bin_op,
+            .left_expr = left_prev,
+            .right_expr = right};
+
+        left->expr_type = EXPR_BINARY;
+        left->value.binary = binary_expr;
+
+        bin_op->base.parent = &left->base;
+        right->base.parent = &(left->base);
+        left_prev->base.parent = &(left->base);
+
+        next_token = peek_token(parser);
+    }
+
+    return left; // top level binary expression; parent handled by the calling function
+}
+
+expression_t *parse_factor(parser_t *parser)
+{
+    if (!parser)
+    {
+        return NULL;
+    }
     token_t *token = peek_token(parser);
     if (!token)
     {
@@ -200,7 +310,7 @@ expression_t *parse_expression(parser_t *parser)
         expression->base.parent = NULL;
         expression->expr_type = EXPR_UNARY;
 
-        expression_t *nested_expression = parse_expression(parser);
+        expression_t *nested_expression = parse_factor(parser);
         if (!nested_expression)
         {
             token_t *current_token = peek_token(parser);
@@ -222,7 +332,7 @@ expression_t *parse_expression(parser_t *parser)
         unary_operator->base.location.column = token->column;
         unary_operator->base.location.line = token->line;
         unary_operator->base.type = NODE_UNARY_OP;
-        unary_operator->op=(unary_op_type == TOKEN_OPERATOR_NEGATION) ? NEGATE : BITWISE_COMPLEMENT;
+        unary_operator->op = (unary_op_type == TOKEN_OPERATOR_NEGATION) ? NEGATE : BITWISE_COMPLEMENT;
 
         expression->value.unary.unary_operator = unary_operator;
         break;
@@ -257,7 +367,7 @@ statement_t *parse_statement(parser_t *parser)
     statement->base.parent = NULL;
     statement->stmt_type = STMT_RETURN;
 
-    expression_t *expression = parse_expression(parser);
+    expression_t *expression = parse_factor(parser);
     if (!expression)
     {
         return NULL;
