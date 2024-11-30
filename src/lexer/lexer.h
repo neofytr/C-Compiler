@@ -52,6 +52,7 @@ typedef enum
     TOKEN_OPERATOR_BITWISE_COMPLEMENT, // ~
     TOKEN_OPERATOR_NEGATION,           // -
     TOKEN_OPERATOR_DECREMENT,          // --
+    TOKEN_OPERATOR_REM,                // %
     TOKEN_ERROR                        // For error reporting
 } token_type_t;
 
@@ -358,6 +359,9 @@ static bool lex_symbol(lexer_t *lexer, token_list_t *list)
     case '+':
         type = TOKEN_OPERATOR_PLUS;
         break;
+    case '%':
+        type = TOKEN_OPERATOR_REM;
+        break;
     case '-':
         advance_lexer(lexer);
         if (peek(lexer) == '-')
@@ -602,6 +606,8 @@ static const char *token_type_to_string(token_type_t type)
         return "OPERATOR_GREATER_EQUAL";
     case TOKEN_OPERATOR_BITWISE_COMPLEMENT:
         return "OPERATOR_BITWISE_COMPLEMENT";
+    case TOKEN_OPERATOR_REM:
+        return "OPERATOR_REMAINDER";
     case TOKEN_OPERATOR_DECREMENT:
         return "OPERATOR_DECREMENT";
     case TOKEN_ERROR:
