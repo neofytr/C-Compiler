@@ -37,6 +37,29 @@ typedef struct ir_identifier_e
     char *name;
 } ir_identifier_t;
 
+typedef enum ir_binary_operator_type_e
+{
+    IR_BINARY_ADD,
+    IR_BINARY_SUBTRACT,
+    IR_BINARY_MULTIPLY,
+    IR_BINARY_DIVIDE,
+    IR_BINARY_REM,
+} ir_binary_operator_type_t;
+
+typedef struct ir_binary_operator_e
+{
+    ir_ast_node_t base;
+    ir_binary_operator_type_t operator;
+} ir_binary_operator_t;
+
+typedef struct ir_binary_e
+{
+    ir_binary_operator_t *binary_operator;
+    ir_value_t *src1;
+    ir_value_t *src2;
+    ir_value_t *dst;
+} ir_binary_t;
+
 typedef struct ir_variable_e
 {
     ir_identifier_t *identifier;
@@ -63,6 +86,7 @@ typedef enum
 {
     IR_INSTR_RETURN,
     IR_INSTR_UNARY,
+    IR_INSTR_BINARY,
 } ir_instruction_type_t;
 
 typedef struct
