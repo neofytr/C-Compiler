@@ -430,7 +430,7 @@ statement_t *parse_statement(parser_t *parser)
     statement->base.parent = NULL;
     statement->stmt_type = STMT_RETURN;
 
-    expression_t *expression = parse_factor(parser);
+    expression_t *expression = parse_expression(parser, MIN_PRECEDENCE);
     if (!expression)
     {
         return NULL;

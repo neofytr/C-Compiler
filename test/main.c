@@ -335,6 +335,7 @@ void visit_ir_program(ir_program_t *ir_program);
 void visit_ir_function(ir_function_t *ir_function);
 void visit_ir_instruction(ir_instruction_t *ir_instruction);
 void visit_ir_value(ir_value_t *ir_value);
+void visit_ir_binary_operator(ir_binary_operator_t *binary_operator);
 void visit_ir_identifier(ir_identifier_t *ir_identifier);
 
 void visit_ir_program(ir_program_t *ir_program)
@@ -405,6 +406,29 @@ void visit_ir_instruction(ir_instruction_t *ir_instruction)
             visit_ir_value(ir_instruction->instruction.unary_instr.destination);
         }
         break;
+    case IR_INSTR_BINARY:
+        printf("Visiting IR Binary Instruction\n");
+        if (ir_instruction->instruction.binary_instr.left)
+        {
+            printf("Left Operand:\n");
+            visit_ir_value(ir_instruction->instruction.binary_instr.left);
+        }
+        if (ir_instruction->instruction.binary_instr.binary_operator)
+        {
+            printf("Binary Operator:\n");
+            visit_ir_binary_operator(ir_instruction->instruction.binary_instr.binary_operator);
+        }
+        if (ir_instruction->instruction.binary_instr.right)
+        {
+            printf("Right Operand:\n");
+            visit_ir_value(ir_instruction->instruction.binary_instr.right);
+        }
+        if (ir_instruction->instruction.binary_instr.destination)
+        {
+            printf("Destination:\n");
+            visit_ir_value(ir_instruction->instruction.binary_instr.destination);
+        }
+        break;
     default:
         printf("Unknown IR Instruction Type\n");
     }
@@ -429,6 +453,32 @@ void visit_ir_value(ir_value_t *ir_value)
         break;
     default:
         printf("Unknown IR Value Type\n");
+    }
+}
+
+void visit_ir_binary_operator(ir_binary_operator_t *binary_operator)
+{
+    printf("Visiting IR Binary Operator\n");
+    switch (binary_operator->operator)
+    {
+    case IR_BINARY_ADD:
+        printf("ADD\n");
+        break;
+    case IR_BINARY_SUBTRACT:
+        printf("SUBTRACT\n");
+        break;
+    case IR_BINARY_MULTIPLY:
+        printf("MULTIPLY\n");
+        break;
+    case IR_BINARY_DIVIDE:
+        printf("DIVIDE\n");
+        break;
+    case IR_BINARY_REM:
+        printf("REMAINDER\n");
+        break;
+    default:
+        printf("Unknown Binary Operator\n");
+        break;
     }
 }
 

@@ -23,6 +23,49 @@ ir_identifier_t *ir_handle_identifier(identifier_t *source_identifier);
 ir_unary_operator_t *ir_handle_unary_operator(unary_operator_t *source_unary_operator);
 char *new_temp_var_name();
 
+ir_binary_operator_t *ir_handle_binary_operator(binary_operator_t *source_binary_operator)
+{
+    if (!source_binary_operator)
+    {
+        DEBUG_NULL_RETURN("ir_handle_binary_operator");
+        return NULL;
+    }
+
+    ir_binary_operator_t *ir_binary_operator = (ir_binary_operator_t *)allocate(sizeof(ir_binary_operator_t));
+    if (!ir_binary_operator)
+    {
+        DEBUG_NULL_RETURN("ir_handle_binary_operator");
+        return NULL;
+    }
+
+    ir_binary_operator->base.type = IR_NODE_BINARY_OPERATOR;
+
+    switch (source_binary_operator->binary_operator)
+    {
+    case BINARY_ADD:
+        ir_binary_operator->operator= IR_BINARY_ADD;
+        break;
+    case BINARY_SUB:
+        ir_binary_operator->operator= IR_BINARY_SUBTRACT;
+        break;
+    case BINARY_MUL:
+        ir_binary_operator->operator= IR_BINARY_MULTIPLY;
+        break;
+    case BINARY_DIV:
+        ir_binary_operator->operator= IR_BINARY_DIVIDE;
+        break;
+    case BINARY_REM:
+        ir_binary_operator->operator= IR_BINARY_REM;
+        break;
+    default:
+        DEBUG_NULL_RETURN("ir_handle_binary_operator");
+        deallocate(ir_binary_operator);
+        return NULL;
+    }
+
+    return ir_binary_operator;
+}
+
 ir_program_t *conv_ast_to_ir(program_t *source_program)
 {
     return ir_handle_program(source_program);
@@ -106,6 +149,105 @@ ir_instruction_struct_t ir_handle_expression(expression_t *source_expression)
         ir_constant_value->value.constant_int = source_expression->value.constant_int;
 
         return (ir_instruction_struct_t){.instructions = NULL, .instruction_count = 0};
+    }
+    case EXPR_BINARY:
+    {
+        binary_t source_binary = source_expression->value.binary;
+        expression_t *source_left_expr = source_binary.left_expr;
+        expression_t *source_right_expr = source_binary.right_expr;
+        binary_operator_t *source_binary_operator = source_binary.op;
+
+        if (!source_left_expr || !source_right_expr || !source_binary_operator)
+        {
+            fprintf(stderr, "Invalid binary expression components\n");
+            return (ir_instruction_struct_t){.instructions = NULL, .instruction_count = 0};
+        }
+
+        ir_instruction_struct_t ir_left_instruction_struct = ir_handle_expression(source_left_expr);
+        ir_instruction_struct_t ir_right_instruction_struct = ir_handle_expression(source_right_expr);
+
+        ir_value_t *ir_left_value = (ir_left_instruction_struct.instruction_count > 0)
+                                        ? ir_left_instruction_struct.instructions[ir_left_instruction_struct.instruction_count - 1]->instruction.unary_instr.destination
+                                        : NULL;
+
+        ir_value_t *ir_right_value = (ir_right_instruction_struct.instruction_count > 0)
+                                         ? ir_right_instruction_struct.instructions[ir_right_instruction_struct.instruction_count - 1]->instruction.unary_instr.destination
+                                         : NULL;
+
+        if (!ir_left_value)
+        {
+            ir_left_value = allocate(sizeof(ir_value_t));
+            ir_left_value->base.type = IR_NODE_VALUE;
+            ir_left_value->type = IR_VAL_CONSTANT_INT;
+            ir_left_value->value.constant_int = source_left_expr->value.constant_int;
+        }
+
+        if (!ir_right_value)
+        {
+            ir_right_value = allocate(sizeof(ir_value_t));
+            ir_right_value->base.type = IR_NODE_VALUE;
+            ir_right_value->type = IR_VAL_CONSTANT_INT;
+            ir_right_value->value.constant_int = source_right_expr->value.constant_int;
+        }
+
+        ir_binary_operator_t *ir_binary_operator = ir_handle_binary_operator(source_binary_operator);
+        if (!ir_binary_operator)
+        {
+            fprintf(stderr, "Failed to create binary operator\n");
+            if (ir_left_instruction_struct.instructions)
+                deallocate(ir_left_instruction_struct.instructions);
+            if (ir_right_instruction_struct.instructions)
+                deallocate(ir_right_instruction_struct.instructions);
+            return (ir_instruction_struct_t){.instructions = NULL, .instruction_count = 0};
+        }
+
+        ir_value_t *ir_destination_value = allocate(sizeof(ir_value_t));
+        ir_destination_value->base.type = IR_NODE_VALUE;
+        ir_destination_value->type = IR_VAL_VARIABLE;
+
+        char *temp_var_name = new_temp_var_name();
+        ir_destination_value->value.variable.identifier = allocate(sizeof(ir_identifier_t));
+        ir_destination_value->value.variable.identifier->base.type = IR_NODE_IDENTIFIER;
+        ir_destination_value->value.variable.identifier->name = temp_var_name;
+
+        ir_instruction_t *ir_binary_instruction = allocate(sizeof(ir_instruction_t));
+        ir_binary_instruction->base.type = IR_NODE_INSTRUCTION;
+        ir_binary_instruction->type = IR_INSTR_BINARY;
+        ir_binary_instruction->instruction.binary_instr.binary_operator = ir_binary_operator;
+        ir_binary_instruction->instruction.binary_instr.left = ir_left_value;
+        ir_binary_instruction->instruction.binary_instr.right = ir_right_value;
+        ir_binary_instruction->instruction.binary_instr.destination = ir_destination_value;
+
+        size_t total_instruction_count =
+            ir_left_instruction_struct.instruction_count +
+            ir_right_instruction_struct.instruction_count + 1;
+
+        ir_instruction_t **combined_instructions = allocate(
+            sizeof(ir_instruction_t *) * total_instruction_count);
+
+        size_t current_index = 0;
+        for (size_t i = 0; i < ir_left_instruction_struct.instruction_count; i++)
+        {
+            combined_instructions[current_index++] =
+                ir_left_instruction_struct.instructions[i];
+        }
+
+        for (size_t i = 0; i < ir_right_instruction_struct.instruction_count; i++)
+        {
+            combined_instructions[current_index++] =
+                ir_right_instruction_struct.instructions[i];
+        }
+
+        combined_instructions[current_index++] = ir_binary_instruction;
+
+        if (ir_left_instruction_struct.instructions)
+            deallocate(ir_left_instruction_struct.instructions);
+        if (ir_right_instruction_struct.instructions)
+            deallocate(ir_right_instruction_struct.instructions);
+
+        return (ir_instruction_struct_t){
+            .instructions = combined_instructions,
+            .instruction_count = total_instruction_count};
     }
     case EXPR_UNARY:
     {
