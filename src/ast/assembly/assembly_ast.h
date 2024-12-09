@@ -66,6 +66,8 @@ typedef enum
 {
     ASM_REG_RAX,
     ASM_REG_R10,
+    ASM_REG_RDX,
+    ASM_REG_R11,
 } asm_reg_no_t;
 
 struct asm_register_
