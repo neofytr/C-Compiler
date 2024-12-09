@@ -152,6 +152,57 @@ bool replace_pseudoregisters(asm_program_t *asm_program)
 
             break;
         }
+        case INSTRUCTION_BINARY:
+        {
+            asm_instruction_binary_t *asm_instruction_binary = &asm_instruction->instr.binary;
+            if (!asm_instruction_binary)
+            {
+                destroy_hash_table(hash_table);
+                return false;
+            }
+            asm_operand_t *asm_binary_first = asm_instruction_binary->first_operand;
+            if (!asm_binary_first)
+            {
+                destroy_hash_table(hash_table);
+                return false;
+            }
+            asm_operand_t *asm_binary_second = asm_instruction_binary->second_operand;
+            if (!asm_binary_second)
+            {
+                destroy_hash_table(hash_table);
+                return false;
+            }
+
+            if (!replace_pseudoregs_operand(asm_binary_first, hash_table) || !replace_pseudoregs_operand(asm_binary_second, hash_table))
+            {
+                destroy_hash_table(hash_table);
+                return false;
+            }
+
+            break;
+        }
+        case INSTRUCTION_IDIV:
+        {
+            asm_instruction_idiv_t *asm_instruction_idiv = &asm_instruction->instr.idiv;
+            if (!asm_instruction_idiv)
+            {
+                destroy_hash_table(hash_table);
+                return false;
+            }
+
+            asm_operand_t *operand_idiv = asm_instruction_idiv->operand;
+            if (!operand_idiv)
+            {
+                destroy_hash_table(hash_table);
+                return false;
+            }
+
+            if (!replace_pseudoregs_operand(operand_idiv, hash_table))
+            {
+                destroy_hash_table(hash_table);
+                return false;
+            }
+        }
         }
     }
 
