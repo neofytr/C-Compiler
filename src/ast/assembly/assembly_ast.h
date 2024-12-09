@@ -18,6 +18,10 @@ typedef struct asm_stack_ asm_stack_t;
 typedef struct asm_instruction_alloc_stack_ asm_instruction_alloc_stack_t;
 typedef struct asm_instruction_unary_ asm_instruction_unary_t;
 typedef struct asm_unary_operator_ asm_unary_operator_t;
+typedef struct asm_binary_operator_ asm_binary_operator_t;
+typedef struct asm_instruction_binary_ asm_instruction_binary_t;
+typedef struct asm_instruction_idiv_ asm_instruction_idiv_t;
+typedef struct asm_instruction_cqo_ asm_instruction_cqo_t;
 
 typedef enum
 {
@@ -48,6 +52,9 @@ typedef enum
     INSTRUCTION_RET,
     INSTRUCTION_UNARY,
     INSTRUCTION_ALLOCATE_STACK,
+    INSTRUCTION_CQO,
+    INSTRUCTION_IDIV,
+    INSTRUCTION_BINARY,
 } asm_instruction_type_t;
 
 struct asm_immediate_
@@ -108,6 +115,34 @@ struct asm_instruction_unary_
 {
     asm_unary_operator_t *unary_operator;
     asm_operand_t *operand; // is both the source and the destination operand
+};
+
+typedef enum
+{
+    ASM_BINARY_ADD,
+    ASM_BINARY_SUB,
+    ASM_BINARY_MULT,
+} asm_binary_operator_type_t;
+
+struct asm_binary_operator_
+{
+    asm_binary_operator_type_t binary_op;
+};
+
+struct asm_instruction_binary_
+{
+    asm_binary_operator_t *binary_operator;
+    asm_operand_t *first_operand;
+    asm_operand_t *second_operand;
+};
+
+struct asm_instruction_idiv_
+{
+    asm_operand_t *operand;
+};
+
+struct asm_instruction_cqo_
+{
 };
 
 struct asm_instruction_alloc_stack_
