@@ -18,9 +18,9 @@ typedef enum
 {
     PRECEDENCE_ADD = 0,
     PRECEDENCE_SUB = 0,
-    PRECEDENCE_MUL = 1,
-    PRECEDENCE_DIV = 1,
-    PRECEDENCE_REM = 1,
+    PRECEDENCE_MUL = 10,
+    PRECEDENCE_DIV = 10,
+    PRECEDENCE_REM = 10,
     MIN_PRECEDENCE = PRECEDENCE_ADD,
 } operator_precedence_t;
 
@@ -279,6 +279,10 @@ expression_t *parse_expression(parser_t *parser, operator_precedence_t min_prece
 
         bin_op->base.parent = &(binary_expr->base);
         right->base.parent = &(binary_expr->base);
+        right->base.location.column = curr_tok->column;
+        right->base.location.line = curr_tok->line;
+        right->base.type = NODE_EXPRESSION;
+        left->base.type = NODE_EXPRESSION;
         left->base.parent = &(binary_expr->base);
 
         left = binary_expr;

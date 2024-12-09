@@ -148,14 +148,15 @@ ir_instruction_struct_t ir_handle_expression(expression_t *source_expression)
         ir_constant_value->type = IR_VAL_CONSTANT_INT;
         ir_constant_value->value.constant_int = source_expression->value.constant_int;
 
+        printf("handling int: %d\n", ir_constant_value->value.constant_int);
+
         return (ir_instruction_struct_t){.instructions = NULL, .instruction_count = 0};
     }
     case EXPR_BINARY:
     {
-        binary_t source_binary = source_expression->value.binary;
-        expression_t *source_left_expr = source_binary.left_expr;
-        expression_t *source_right_expr = source_binary.right_expr;
-        binary_operator_t *source_binary_operator = source_binary.op;
+        expression_t *source_left_expr = source_expression->value.binary.left_expr;
+        expression_t *source_right_expr = source_expression->value.binary.right_expr;
+        binary_operator_t *source_binary_operator = source_expression->value.binary.op;
 
         if (!source_left_expr || !source_right_expr || !source_binary_operator)
         {
@@ -165,58 +166,70 @@ ir_instruction_struct_t ir_handle_expression(expression_t *source_expression)
 
         ir_instruction_struct_t ir_left_instruction_struct = ir_handle_expression(source_left_expr);
         ir_instruction_struct_t ir_right_instruction_struct = ir_handle_expression(source_right_expr);
+        ir_value_t *ir_left_value = NULL;
+        ir_value_t *ir_right_value = NULL;
 
-        /*
-
-        The IR we emit evaluates a binary expression's first operand before the second, but it's just as correct
-        to evaluate the second operand before the first. According to the C standard, subexpressions of the
-        same operation are usually unsequences; that is, they can be evaluated in any order. If two subexpressions
-        would be unsequences, but either or both of them is a function call, they're indeterminately sequenced, meaning that
-        either one can execute first, but they can't interleave. In many cases, unsequenced and indeterminately sequenced evaluations
-        can lead to unpredictable results. Consider the following program, which includes two indeterminately sequenced calls to
-        printf:
-
-        #include <stdio.h>
-
-        int main(void)
+        if (ir_left_instruction_struct.instruction_count > 0)
         {
-            return printf("Hello, ") + printf("World!");
+            ir_left_value = allocate(sizeof(ir_value_t));
+            ir_left_value->base.type = IR_NODE_VALUE;
+            ir_left_value->base.parent = NULL;
+            ir_left_value->type = IR_VAL_VARIABLE;
+
+            ir_instruction_t *last_instruction = ir_left_instruction_struct.instructions[ir_left_instruction_struct.instruction_count - 1];
+            switch (last_instruction->type)
+            {
+            case IR_INSTR_BINARY:
+                ir_left_value->value.variable.identifier =
+                    last_instruction->instruction.binary_instr.destination->value.variable.identifier;
+                break;
+            case IR_INSTR_UNARY:
+                ir_left_value->value.variable.identifier =
+                    last_instruction->instruction.unary_instr.destination->value.variable.identifier;
+                break;
+            case IR_INSTR_RETURN:
+                ir_left_value->value.variable.identifier =
+                    last_instruction->instruction.return_instr.value->value.variable.identifier;
+                break;
+            default:
+                ir_left_value = NULL;
+                break;
+            }
         }
 
-        You could compile this program with a C standard-compliant compiler, run it, and get
-        either of these outputs:
+        if (ir_right_instruction_struct.instruction_count > 0)
+        {
+            ir_right_value = allocate(sizeof(ir_value_t));
+            ir_right_value->base.type = IR_NODE_VALUE;
+            ir_right_value->base.parent = NULL;
+            ir_right_value->type = IR_VAL_VARIABLE;
 
-        Hello, World!
-        World!Hello,
-
-        There are a few exceptions where we must evaluate the first operand first: the logical && and  || operators;
-        the conditional ? : operator; and the comma operator.
-
-        This is laid out in section 5.1.2.3 of the C standard (which covers the general rules for evaluation
-        order and defines the terms unsequenced and indeterminately sequenced) and section 6.5 paragraphs 1-3 (which
-        address the evaluation order for expression operands in particular).
-
-        Unsequenced operations are one example of a broader pattern: there
-        are a lot of circumstances where the C standard doesn’t specify exactly how
-        programs should behave. By leaving some details about program behavior unspecified, the C
-        standard puts a lot of power in the hands of compiler writers, allowing them
-        to write sophisticated compiler optimizations. But there’s an obvious tradeoff: it’s easy for programmers to 
-        write code that might not behave the way they expect.
-
-        */
-
-        ir_value_t *ir_left_value = (ir_left_instruction_struct.instruction_count > 0)
-                                        ? ir_left_instruction_struct.instructions[ir_left_instruction_struct.instruction_count - 1]->instruction.unary_instr.destination
-                                        : NULL;
-
-        ir_value_t *ir_right_value = (ir_right_instruction_struct.instruction_count > 0)
-                                         ? ir_right_instruction_struct.instructions[ir_right_instruction_struct.instruction_count - 1]->instruction.unary_instr.destination
-                                         : NULL;
+            ir_instruction_t *last_instruction = ir_right_instruction_struct.instructions[ir_right_instruction_struct.instruction_count - 1];
+            switch (last_instruction->type)
+            {
+            case IR_INSTR_BINARY:
+                ir_right_value->value.variable.identifier =
+                    last_instruction->instruction.binary_instr.destination->value.variable.identifier;
+                break;
+            case IR_INSTR_UNARY:
+                ir_right_value->value.variable.identifier =
+                    last_instruction->instruction.unary_instr.destination->value.variable.identifier;
+                break;
+            case IR_INSTR_RETURN:
+                ir_right_value->value.variable.identifier =
+                    last_instruction->instruction.return_instr.value->value.variable.identifier;
+                break;
+            default:
+                ir_right_value = NULL;
+                break;
+            }
+        }
 
         if (!ir_left_value)
         {
             ir_left_value = allocate(sizeof(ir_value_t));
             ir_left_value->base.type = IR_NODE_VALUE;
+            ir_left_value->base.parent = NULL;
             ir_left_value->type = IR_VAL_CONSTANT_INT;
             ir_left_value->value.constant_int = source_left_expr->value.constant_int;
         }
@@ -225,6 +238,7 @@ ir_instruction_struct_t ir_handle_expression(expression_t *source_expression)
         {
             ir_right_value = allocate(sizeof(ir_value_t));
             ir_right_value->base.type = IR_NODE_VALUE;
+            ir_right_value->base.parent = NULL;
             ir_right_value->type = IR_VAL_CONSTANT_INT;
             ir_right_value->value.constant_int = source_right_expr->value.constant_int;
         }
