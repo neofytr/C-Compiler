@@ -177,6 +177,9 @@ struct asm_instruction_
         asm_instruction_ret_t ret;
         asm_instruction_unary_t unary;
         asm_instruction_alloc_stack_t alloc_stack;
+        asm_instruction_binary_t binary;
+        asm_instruction_cqo_t cqo;
+        asm_instruction_idiv_t idiv;
     } instr;
 };
 

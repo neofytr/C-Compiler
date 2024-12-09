@@ -219,9 +219,384 @@ asm_instruction_struct_t handle_ir_instruction(ir_instruction_t *ir_instruction)
 
         return result;
     }
-    }
+    case IR_INSTR_BINARY:
+    {
+        ir_instruction_binary_t ir_instruction_binary = ir_instruction->instruction.binary_instr;
+        ir_binary_operator_t *ir_binary_operator = ir_instruction_binary.binary_operator;
+        if (!ir_binary_operator)
+        {
+            return NULL_INSTRUCTION_STRUCT_ASM;
+        }
+        ir_binary_operator_type_t ir_binary_operator_type = ir_binary_operator->operator;
 
-    return NULL_INSTRUCTION_STRUCT_ASM;
+        switch (ir_binary_operator_type)
+        {
+        case IR_BINARY_DIVIDE:
+        {
+            asm_instruction_struct_t result = {
+                .instructions = (asm_instruction_t **)allocate(4 * sizeof(asm_instruction_t *)),
+                .instruction_count = 4,
+            };
+
+            if (!result.instructions)
+            {
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            asm_instruction_t *asm_instruction_mov_first = (asm_instruction_t *)allocate(sizeof(asm_instruction_t));
+            if (!asm_instruction_mov_first)
+            {
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            asm_instruction_mov_first->type = INSTRUCTION_MOV;
+            asm_instruction_mov_first->base.type = ASM_NODE_INSTRUCTION;
+
+            asm_operand_t *asm_mov_first_src = (asm_operand_t *)allocate(sizeof(asm_operand_t));
+            asm_operand_t *asm_mov_first_dst = (asm_operand_t *)allocate(sizeof(asm_operand_t));
+
+            if (!asm_mov_first_src || !asm_mov_first_dst)
+            {
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            switch (ir_instruction_binary.left->type)
+            {
+            case IR_VAL_CONSTANT_INT:
+                asm_mov_first_src->type = OPERAND_IMMEDIATE;
+                asm_mov_first_src->operand.immediate.value = ir_instruction_binary.left->value.constant_int;
+                break;
+            case IR_VAL_VARIABLE:
+                asm_mov_first_src->type = OPERAND_PSEUDO;
+                asm_mov_first_src->operand.pseudo.pseudo_name = ir_instruction_binary.left->value.variable.identifier->name;
+                break;
+            default:
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            asm_mov_first_dst->type = OPERAND_REGISTER;
+            asm_mov_first_dst->operand.reg.reg_no = ASM_REG_RAX;
+
+            asm_instruction_mov_first->instr.mov = (asm_instruction_mov_t){
+                .src = asm_mov_first_src,
+                .dst = asm_mov_first_dst};
+
+            asm_instruction_t *asm_instruction_cqo = (asm_instruction_t *)allocate(sizeof(asm_instruction_t));
+            if (!asm_instruction_cqo)
+            {
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            asm_instruction_cqo->type = INSTRUCTION_CQO;
+            asm_instruction_cqo->base.type = ASM_NODE_INSTRUCTION;
+            asm_instruction_cqo->instr.ret = (asm_instruction_ret_t){};
+
+            asm_instruction_t *asm_instruction_idiv = (asm_instruction_t *)allocate(sizeof(asm_instruction_t));
+            if (!asm_instruction_idiv)
+            {
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            asm_instruction_idiv->type = INSTRUCTION_IDIV;
+            asm_instruction_idiv->base.type = ASM_NODE_INSTRUCTION;
+
+            asm_operand_t *asm_idiv_operand = (asm_operand_t *)allocate(sizeof(asm_operand_t));
+            if (!asm_idiv_operand)
+            {
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            switch (ir_instruction_binary.right->type)
+            {
+            case IR_VAL_CONSTANT_INT:
+                asm_idiv_operand->type = OPERAND_IMMEDIATE;
+                asm_idiv_operand->operand.immediate.value = ir_instruction_binary.right->value.constant_int;
+                break;
+            case IR_VAL_VARIABLE:
+                asm_idiv_operand->type = OPERAND_PSEUDO;
+                asm_idiv_operand->operand.pseudo.pseudo_name = ir_instruction_binary.right->value.variable.identifier->name;
+                break;
+            default:
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            asm_instruction_idiv->instr.idiv = (asm_instruction_idiv_t){.operand = asm_idiv_operand};
+
+            asm_instruction_t *asm_instruction_mov_result = (asm_instruction_t *)allocate(sizeof(asm_instruction_t));
+            if (!asm_instruction_mov_result)
+            {
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            asm_instruction_mov_result->type = INSTRUCTION_MOV;
+            asm_instruction_mov_result->base.type = ASM_NODE_INSTRUCTION;
+
+            asm_operand_t *asm_mov_result_src = (asm_operand_t *)allocate(sizeof(asm_operand_t));
+            asm_operand_t *asm_mov_result_dst = (asm_operand_t *)allocate(sizeof(asm_operand_t));
+
+            if (!asm_mov_result_src || !asm_mov_result_dst)
+            {
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            asm_mov_result_src->type = OPERAND_REGISTER;
+            asm_mov_result_src->operand.reg.reg_no = ASM_REG_RAX;
+
+            asm_mov_result_dst->type = OPERAND_PSEUDO;
+            asm_mov_result_dst->operand.pseudo.pseudo_name = ir_instruction_binary.destination->value.variable.identifier->name;
+
+            asm_instruction_mov_result->instr.mov = (asm_instruction_mov_t){
+                .src = asm_mov_result_src,
+                .dst = asm_mov_result_dst};
+
+            result.instructions[0] = asm_instruction_mov_first;
+            result.instructions[1] = asm_instruction_cqo;
+            result.instructions[2] = asm_instruction_idiv;
+            result.instructions[3] = asm_instruction_mov_result;
+
+            return result;
+        }
+
+        case IR_BINARY_REM:
+        {
+            asm_instruction_struct_t result = {
+                .instructions = (asm_instruction_t **)allocate(4 * sizeof(asm_instruction_t *)),
+                .instruction_count = 4,
+            };
+
+            if (!result.instructions)
+            {
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            asm_instruction_t *asm_instruction_mov_first = (asm_instruction_t *)allocate(sizeof(asm_instruction_t));
+            if (!asm_instruction_mov_first)
+            {
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            asm_instruction_mov_first->type = INSTRUCTION_MOV;
+            asm_instruction_mov_first->base.type = ASM_NODE_INSTRUCTION;
+
+            asm_operand_t *asm_mov_first_src = (asm_operand_t *)allocate(sizeof(asm_operand_t));
+            asm_operand_t *asm_mov_first_dst = (asm_operand_t *)allocate(sizeof(asm_operand_t));
+
+            if (!asm_mov_first_src || !asm_mov_first_dst)
+            {
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            switch (ir_instruction_binary.left->type)
+            {
+            case IR_VAL_CONSTANT_INT:
+                asm_mov_first_src->type = OPERAND_IMMEDIATE;
+                asm_mov_first_src->operand.immediate.value = ir_instruction_binary.left->value.constant_int;
+                break;
+            case IR_VAL_VARIABLE:
+                asm_mov_first_src->type = OPERAND_PSEUDO;
+                asm_mov_first_src->operand.pseudo.pseudo_name = ir_instruction_binary.left->value.variable.identifier->name;
+                break;
+            default:
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            asm_mov_first_dst->type = OPERAND_REGISTER;
+            asm_mov_first_dst->operand.reg.reg_no = ASM_REG_RAX;
+
+            asm_instruction_mov_first->instr.mov = (asm_instruction_mov_t){
+                .src = asm_mov_first_src,
+                .dst = asm_mov_first_dst};
+
+            asm_instruction_t *asm_instruction_cqo = (asm_instruction_t *)allocate(sizeof(asm_instruction_t));
+            if (!asm_instruction_cqo)
+            {
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            asm_instruction_cqo->type = INSTRUCTION_CQO;
+            asm_instruction_cqo->base.type = ASM_NODE_INSTRUCTION;
+            asm_instruction_cqo->instr.ret = (asm_instruction_ret_t){};
+
+            asm_instruction_t *asm_instruction_idiv = (asm_instruction_t *)allocate(sizeof(asm_instruction_t));
+            if (!asm_instruction_idiv)
+            {
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            asm_instruction_idiv->type = INSTRUCTION_IDIV;
+            asm_instruction_idiv->base.type = ASM_NODE_INSTRUCTION;
+
+            asm_operand_t *asm_idiv_operand = (asm_operand_t *)allocate(sizeof(asm_operand_t));
+            if (!asm_idiv_operand)
+            {
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            switch (ir_instruction_binary.right->type)
+            {
+            case IR_VAL_CONSTANT_INT:
+                asm_idiv_operand->type = OPERAND_IMMEDIATE;
+                asm_idiv_operand->operand.immediate.value = ir_instruction_binary.right->value.constant_int;
+                break;
+            case IR_VAL_VARIABLE:
+                asm_idiv_operand->type = OPERAND_PSEUDO;
+                asm_idiv_operand->operand.pseudo.pseudo_name = ir_instruction_binary.right->value.variable.identifier->name;
+                break;
+            default:
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            asm_instruction_idiv->instr.idiv = (asm_instruction_idiv_t){.operand = asm_idiv_operand};
+
+            asm_instruction_t *asm_instruction_mov_result = (asm_instruction_t *)allocate(sizeof(asm_instruction_t));
+            if (!asm_instruction_mov_result)
+            {
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            asm_instruction_mov_result->type = INSTRUCTION_MOV;
+            asm_instruction_mov_result->base.type = ASM_NODE_INSTRUCTION;
+
+            asm_operand_t *asm_mov_result_src = (asm_operand_t *)allocate(sizeof(asm_operand_t));
+            asm_operand_t *asm_mov_result_dst = (asm_operand_t *)allocate(sizeof(asm_operand_t));
+
+            if (!asm_mov_result_src || !asm_mov_result_dst)
+            {
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            asm_mov_result_src->type = OPERAND_REGISTER;
+            asm_mov_result_src->operand.reg.reg_no = ASM_REG_RDX;
+
+            asm_mov_result_dst->type = OPERAND_PSEUDO;
+            asm_mov_result_dst->operand.pseudo.pseudo_name = ir_instruction_binary.destination->value.variable.identifier->name;
+
+            asm_instruction_mov_result->instr.mov = (asm_instruction_mov_t){
+                .src = asm_mov_result_src,
+                .dst = asm_mov_result_dst};
+
+            result.instructions[0] = asm_instruction_mov_first;
+            result.instructions[1] = asm_instruction_cqo;
+            result.instructions[2] = asm_instruction_idiv;
+            result.instructions[3] = asm_instruction_mov_result;
+
+            return result;
+        }
+
+        default:
+        {
+            asm_instruction_struct_t result = {
+                .instructions = (asm_instruction_t **)allocate(2 * sizeof(asm_instruction_t *)),
+                .instruction_count = 2,
+            };
+
+            if (!result.instructions)
+            {
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            asm_instruction_t *asm_instruction_mov_first = (asm_instruction_t *)allocate(sizeof(asm_instruction_t));
+            if (!asm_instruction_mov_first)
+            {
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            asm_instruction_mov_first->type = INSTRUCTION_MOV;
+            asm_instruction_mov_first->base.type = ASM_NODE_INSTRUCTION;
+
+            asm_operand_t *asm_mov_first_src = (asm_operand_t *)allocate(sizeof(asm_operand_t));
+            asm_operand_t *asm_mov_first_dst = (asm_operand_t *)allocate(sizeof(asm_operand_t));
+
+            if (!asm_mov_first_src || !asm_mov_first_dst)
+            {
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            switch (ir_instruction_binary.left->type)
+            {
+            case IR_VAL_CONSTANT_INT:
+                asm_mov_first_src->type = OPERAND_IMMEDIATE;
+                asm_mov_first_src->operand.immediate.value = ir_instruction_binary.left->value.constant_int;
+                break;
+            case IR_VAL_VARIABLE:
+                asm_mov_first_src->type = OPERAND_PSEUDO;
+                asm_mov_first_src->operand.pseudo.pseudo_name = ir_instruction_binary.left->value.variable.identifier->name;
+                break;
+            default:
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            asm_mov_first_dst->type = OPERAND_PSEUDO;
+            asm_mov_first_dst->operand.pseudo.pseudo_name = ir_instruction_binary.destination->value.variable.identifier->name;
+
+            asm_instruction_mov_first->instr.mov = (asm_instruction_mov_t){
+                .src = asm_mov_first_src,
+                .dst = asm_mov_first_dst};
+
+            asm_instruction_t *asm_instruction_binary = (asm_instruction_t *)allocate(sizeof(asm_instruction_t));
+            if (!asm_instruction_binary)
+            {
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            asm_instruction_binary->type = INSTRUCTION_BINARY;
+            asm_instruction_binary->base.type = ASM_NODE_INSTRUCTION;
+
+            asm_binary_operator_t *asm_binary_op = (asm_binary_operator_t *)allocate(sizeof(asm_binary_operator_t));
+            if (!asm_binary_op)
+            {
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            asm_operand_t *asm_binary_second_operand = (asm_operand_t *)allocate(sizeof(asm_operand_t));
+            if (!asm_binary_second_operand)
+            {
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            switch (ir_instruction_binary.right->type)
+            {
+            case IR_VAL_CONSTANT_INT:
+                asm_binary_second_operand->type = OPERAND_IMMEDIATE;
+                asm_binary_second_operand->operand.immediate.value = ir_instruction_binary.right->value.constant_int;
+                break;
+            case IR_VAL_VARIABLE:
+                asm_binary_second_operand->type = OPERAND_PSEUDO;
+                asm_binary_second_operand->operand.pseudo.pseudo_name = ir_instruction_binary.right->value.variable.identifier->name;
+                break;
+            default:
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            switch (ir_binary_operator_type)
+            {
+            case IR_BINARY_ADD:
+                asm_binary_op->binary_op = ASM_BINARY_ADD;
+                break;
+            case IR_BINARY_SUBTRACT:
+                asm_binary_op->binary_op = ASM_BINARY_SUB;
+                break;
+            case IR_BINARY_MULTIPLY:
+                asm_binary_op->binary_op = ASM_BINARY_MULT;
+                break;
+            default:
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            asm_instruction_binary->instr.binary = (asm_instruction_binary_t){
+                .binary_operator = asm_binary_op,
+                .first_operand = asm_mov_first_dst, // use the mov destination as the first operand
+                .second_operand = asm_binary_second_operand};
+
+            result.instructions[0] = asm_instruction_mov_first;
+            result.instructions[1] = asm_instruction_binary;
+
+            return result;
+        }
+        }
+    }
+        return NULL_INSTRUCTION_STRUCT_ASM;
+    }
 }
 
 asm_identifier_t *handle_ir_identifier(ir_identifier_t *ir_identifier)
