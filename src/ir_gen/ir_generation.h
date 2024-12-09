@@ -166,6 +166,45 @@ ir_instruction_struct_t ir_handle_expression(expression_t *source_expression)
         ir_instruction_struct_t ir_left_instruction_struct = ir_handle_expression(source_left_expr);
         ir_instruction_struct_t ir_right_instruction_struct = ir_handle_expression(source_right_expr);
 
+        /*
+
+        The IR we emit evaluates a binary expression's first operand before the second, but it's just as correct
+        to evaluate the second operand before the first. According to the C standard, subexpressions of the
+        same operation are usually unsequences; that is, they can be evaluated in any order. If two subexpressions
+        would be unsequences, but either or both of them is a function call, they're indeterminately sequenced, meaning that
+        either one can execute first, but they can't interleave. In many cases, unsequenced and indeterminately sequenced evaluations
+        can lead to unpredictable results. Consider the following program, which includes two indeterminately sequenced calls to
+        printf:
+
+        #include <stdio.h>
+
+        int main(void)
+        {
+            return printf("Hello, ") + printf("World!");
+        }
+
+        You could compile this program with a C standard-compliant compiler, run it, and get
+        either of these outputs:
+
+        Hello, World!
+        World!Hello,
+
+        There are a few exceptions where we must evaluate the first operand first: the logical && and  || operators;
+        the conditional ? : operator; and the comma operator.
+
+        This is laid out in section 5.1.2.3 of the C standard (which covers the general rules for evaluation
+        order and defines the terms unsequenced and indeterminately sequenced) and section 6.5 paragraphs 1-3 (which
+        address the evaluation order for expression operands in particular).
+
+        Unsequenced operations are one example of a broader pattern: there
+        are a lot of circumstances where the C standard doesn’t specify exactly how
+        programs should behave. By leaving some details about program behavior unspecified, the C
+        standard puts a lot of power in the hands of compiler writers, allowing them
+        to write sophisticated compiler optimizations. But there’s an obvious tradeoff: it’s easy for programmers to 
+        write code that might not behave the way they expect.
+
+        */
+
         ir_value_t *ir_left_value = (ir_left_instruction_struct.instruction_count > 0)
                                         ? ir_left_instruction_struct.instructions[ir_left_instruction_struct.instruction_count - 1]->instruction.unary_instr.destination
                                         : NULL;
