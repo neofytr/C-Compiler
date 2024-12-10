@@ -207,7 +207,7 @@ bool asm_fix_instruction(asm_program_t *asm_program)
             {
                 asm_instruction_binary_t *imul_instruction = &instruction->instr.binary;
 
-                if (imul_instruction->second_operand->type == OPERAND_STACK)
+                if (imul_instruction->first_operand->type == OPERAND_STACK)
                 {
                     asm_operand_t *r11_operand = (asm_operand_t *)allocate(sizeof(asm_operand_t));
                     if (!r11_operand)
@@ -233,7 +233,7 @@ bool asm_fix_instruction(asm_program_t *asm_program)
                     first_mov->instr.mov.dst = r11_operand;
 
                     // Update IMUL to use r11 as destination
-                    imul_instruction->second_operand = r11_operand;
+                    imul_instruction->first_operand = r11_operand;
 
                     asm_instruction_t *third_mov = (asm_instruction_t *)allocate(sizeof(asm_instruction_t));
                     if (!third_mov)
@@ -243,7 +243,7 @@ bool asm_fix_instruction(asm_program_t *asm_program)
                     third_mov->base.parent = instruction->base.parent;
                     third_mov->type = INSTRUCTION_MOV;
                     third_mov->instr.mov.src = r11_operand;
-                    third_mov->instr.mov.dst = imul_instruction->second_operand;
+                    third_mov->instr.mov.dst = first_mov->instr.mov.src;
 
                     asm_instruction_t **new_instructions = (asm_instruction_t **)allocate(
                         sizeof(asm_instruction_t *) * (function->instruction_count + 2));

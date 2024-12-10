@@ -3,6 +3,8 @@
 #include "../src/assembly_gen/assembly_generation.h"
 #include "../src/code_emitter/code_emitter.h"
 #include "../src/assembly_gen/from_IR/first_pass.h"
+#include "../src/assembly_gen/from_IR/second_pass.h"
+#include "../src/assembly_gen/from_IR/third_pass.h"
 
 // AST Visitors
 void visit_program(program_t *program);
@@ -205,53 +207,117 @@ void visit_asm_program(asm_program_t *asm_program)
 
 void visit_asm_function(asm_function_t *asm_function)
 {
+    if (!asm_function)
+    {
+        printf("Visiting NULL Assembly Function\n");
+        return;
+    }
     printf("Visiting Assembly Function: %s\n", asm_function->name->name);
     for (size_t i = 0; i < asm_function->instruction_count; i++)
     {
+        printf("Instruction %zu:\n", i + 1);
         visit_asm_instruction(asm_function->instructions[i]);
     }
 }
 
 void visit_asm_instruction(asm_instruction_t *asm_instruction)
 {
+    if (!asm_instruction)
+    {
+        printf("Visiting NULL Instruction\n");
+        return;
+    }
+
+    printf("Visiting Instruction: ");
     switch (asm_instruction->type)
     {
     case INSTRUCTION_MOV:
-        printf("Visiting MOV Instruction\n");
-        visit_asm_operand(asm_instruction->instr.mov.src);
+        printf("MOV\n");
         visit_asm_operand(asm_instruction->instr.mov.dst);
+        visit_asm_operand(asm_instruction->instr.mov.src);
         break;
+
     case INSTRUCTION_RET:
-        printf("Visiting RET Instruction\n");
+        printf("RET\n");
         break;
+
     case INSTRUCTION_UNARY:
-        printf("Visiting Unary Instruction\n");
-        printf("Unary operand: %s\n", asm_instruction->instr.unary.operand->operand.pseudo.pseudo_name);
-        printf("Unary operator: %s\n", asm_instruction->instr.unary.unary_operator->op == UNARY_NEG ? "UNARY_NEG" : "UNARY_BITWISE_COMPLEMENT");
+        printf("Unary\n");
+        visit_asm_operand(asm_instruction->instr.unary.operand);
+        printf("Unary Operator: %s\n",
+               asm_instruction->instr.unary.unary_operator->op == UNARY_NEG ? "NEG" : "NOT");
+        break;
+
+    case INSTRUCTION_ALLOCATE_STACK:
+        printf("Allocate Stack\n");
+        printf("Stack Size: %d\n", asm_instruction->instr.alloc_stack.alloc_size);
+        break;
+
+    case INSTRUCTION_CQO:
+        printf("CQO\n");
+        break;
+
+    case INSTRUCTION_IDIV:
+        printf("IDIV\n");
+        visit_asm_operand(asm_instruction->instr.idiv.operand);
+        break;
+
+    case INSTRUCTION_BINARY:
+        printf("Binary\n");
+        visit_asm_operand(asm_instruction->instr.binary.first_operand);
+        visit_asm_operand(asm_instruction->instr.binary.second_operand);
+        printf("Binary Operator: %s\n",
+               asm_instruction->instr.binary.binary_operator->binary_op == ASM_BINARY_ADD ? "ADD" : asm_instruction->instr.binary.binary_operator->binary_op == ASM_BINARY_SUB ? "SUB"
+                                                                                                                                                                               : "MULT");
+        break;
+
     default:
         printf("Unknown Instruction Type\n");
+        break;
     }
 }
 
 void visit_asm_operand(asm_operand_t *operand)
 {
+    if (!operand)
+    {
+        printf("Visiting NULL Operand\n");
+        return;
+    }
+
+    printf("Visiting Operand: ");
     switch (operand->type)
     {
     case OPERAND_IMMEDIATE:
-        printf("Visiting Immediate Operand: %d\n", operand->operand.immediate.value);
+        printf("Immediate Value: %d\n", operand->operand.immediate.value);
         break;
+
     case OPERAND_REGISTER:
-        printf("Visiting Register Operand: r%d\n", operand->operand.reg.reg_no);
+        printf("Register: r%d\n", operand->operand.reg.reg_no);
         break;
+
     case OPERAND_PSEUDO:
-        printf("Visiting Pseudo Operand: %s\n", operand->operand.pseudo.pseudo_name);
+        printf("Pseudo Register: %s\n", operand->operand.pseudo.pseudo_name);
+        break;
+
+    case OPERAND_STACK:
+        printf("Stack Offset: %d\n", operand->operand.stack.offset);
+        break;
+
     default:
         printf("Unknown Operand Type\n");
+        break;
     }
 }
 
 void visit_asm_identifier(asm_identifier_t *identifier)
 {
+    if (!identifier)
+    {
+        printf("Visiting NULL Identifier\n");
+        return;
+    }
+
     printf("Visiting Assembly Identifier: %s\n", identifier->name);
 }
 
@@ -544,8 +610,22 @@ int main(int argc, char **argv)
     printf("IR AST Traversal:\n");
     visit_ir_program(ir_program);
 
-    asm_program_t *asm_program = handle_ir_program(ir_program);
+    asm_program_t *asm_program = asm_first_pass(ir_program);
     if (!asm_program)
+    {
+        printf("ASM generation failed.\n");
+        return EXIT_FAILURE;
+    }
+
+    int final_offset;
+
+    if (!asm_second_pass(asm_program, &final_offset))
+    {
+        printf("ASM generation failed.\n");
+        return EXIT_FAILURE;
+    }
+
+    if (!asm_third_pass(asm_program, final_offset))
     {
         printf("ASM generation failed.\n");
         return EXIT_FAILURE;

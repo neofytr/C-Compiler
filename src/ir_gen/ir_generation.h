@@ -529,8 +529,25 @@ ir_instruction_struct_t ir_handle_statement(statement_t *source_statement)
         }
 
         // Use the last instruction's destination as return value
-        ir_return_instruction->instruction.return_instr = (ir_instruction_return_t){
-            .value = ir_return_val_instructions[ir_return_val_instruction_count - 1]->instruction.unary_instr.destination};
+        ir_instruction_t *last_instruction = ir_return_val_instructions[ir_return_val_instruction_count - 1];
+        switch (last_instruction->type)
+        {
+        case IR_INSTR_BINARY:
+        {
+            ir_return_instruction->instruction.return_instr = (ir_instruction_return_t){
+                last_instruction->instruction.binary_instr.destination,
+            };
+            break;
+        }
+        case IR_INSTR_UNARY:
+        {
+            ir_return_instruction->instruction.return_instr = (ir_instruction_return_t){
+                .value = last_instruction->instruction.unary_instr.destination};
+            break;
+        }
+        default:
+            break;
+        }
 
         // Append return instruction to the existing instructions
         ir_instruction_t **new_instructions = (ir_instruction_t **)allocate(
