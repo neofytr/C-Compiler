@@ -293,7 +293,29 @@ void visit_asm_operand(asm_operand_t *operand)
         break;
 
     case OPERAND_REGISTER:
-        printf("Register: r%d\n", operand->operand.reg.reg_no);
+        switch (operand->operand.reg.reg_no)
+        {
+        case ASM_REG_R10:
+        {
+            printf("Register: R10\n");
+            break;
+        }
+        case ASM_REG_R11:
+        {
+            printf("Register: R11\n");
+            break;
+        }
+        case ASM_REG_RAX:
+        {
+            printf("Register: RAX\n");
+            break;
+        }
+        case ASM_REG_RDX:
+        {
+            printf("Register: RDX\n");
+            break;
+        }
+        }
         break;
 
     case OPERAND_PSEUDO:
