@@ -21,39 +21,46 @@ instead of the program analyzer saying that the identifier is undefined in the c
 
 typedef enum
 {
-    TOKEN_OPENING_BRACE,               // {
-    TOKEN_CLOSING_BRACE,               // }
-    TOKEN_OPENING_PAREN,               // (
-    TOKEN_CLOSING_PAREN,               // )
-    TOKEN_KEYWORD_INT,                 // int
-    TOKEN_KEYWORD_VOID,                // void
-    TOKEN_KEYWORD_RETURN,              // return
-    TOKEN_KEYWORD_IF,                  // if
-    TOKEN_KEYWORD_ELSE,                // else
-    TOKEN_KEYWORD_WHILE,               // while
-    TOKEN_KEYWORD_FOR,                 // for
-    TOKEN_KEYWORD_BREAK,               // break
-    TOKEN_KEYWORD_CONTINUE,            // continue
-    TOKEN_KEYWORD_CONST,               // const
-    TOKEN_IDENTIFIER,                  // [a-zA-Z_][a-zA-Z_]*
-    TOKEN_SEMICOLON,                   // ;
-    TOKEN_CONSTANT,                    // [0-9]+(-[0-9]+)*
-    TOKEN_OPERATOR_PLUS,               // +
-                                       //    TOKEN_OPERATOR_MINUS,         // -
-    TOKEN_OPERATOR_MUL,                // *
-    TOKEN_OPERATOR_DIV,                // /
-    TOKEN_OPERATOR_ASSIGN,             // =
-    TOKEN_OPERATOR_EQUAL,              // ==
-    TOKEN_OPERATOR_NOT_EQUAL,          // !=
-    TOKEN_OPERATOR_LESS,               // <
-    TOKEN_OPERATOR_LESS_EQUAL,         // <=
-    TOKEN_OPERATOR_GREATER,            // >
-    TOKEN_OPERATOR_GREATER_EQUAL,      // >=
-    TOKEN_OPERATOR_BITWISE_COMPLEMENT, // ~
-    TOKEN_OPERATOR_NEGATION,           // -
-    TOKEN_OPERATOR_DECREMENT,          // --
-    TOKEN_OPERATOR_REM,                // %
-    TOKEN_ERROR                        // For error reporting
+    TOKEN_OPENING_BRACE,                // {
+    TOKEN_CLOSING_BRACE,                // }
+    TOKEN_OPENING_PAREN,                // (
+    TOKEN_CLOSING_PAREN,                // )
+    TOKEN_KEYWORD_INT,                  // int
+    TOKEN_KEYWORD_VOID,                 // void
+    TOKEN_KEYWORD_RETURN,               // return
+    TOKEN_KEYWORD_IF,                   // if
+    TOKEN_KEYWORD_ELSE,                 // else
+    TOKEN_KEYWORD_WHILE,                // while
+    TOKEN_KEYWORD_FOR,                  // for
+    TOKEN_KEYWORD_BREAK,                // break
+    TOKEN_KEYWORD_CONTINUE,             // continue
+    TOKEN_KEYWORD_CONST,                // const
+    TOKEN_IDENTIFIER,                   // [a-zA-Z_][a-zA-Z_]*
+    TOKEN_SEMICOLON,                    // ;
+    TOKEN_CONSTANT,                     // [0-9]+(-[0-9]+)*
+    TOKEN_OPERATOR_PLUS,                // +
+                                        //    TOKEN_OPERATOR_MINUS,         // -
+    TOKEN_OPERATOR_MUL,                 // *
+    TOKEN_OPERATOR_DIV,                 // /
+    TOKEN_OPERATOR_ASSIGN,              // =
+    TOKEN_OPERATOR_EQUAL,               // ==
+    TOKEN_OPERATOR_NOT_EQUAL,           // !=
+    TOKEN_OPERATOR_LESS,                // <
+    TOKEN_OPERATOR_LESS_EQUAL,          // <=
+    TOKEN_OPERATOR_GREATER,             // >
+    TOKEN_OPERATOR_GREATER_EQUAL,       // >=
+    TOKEN_OPERATOR_BITWISE_COMPLEMENT,  // ~
+    TOKEN_OPERATOR_NEGATION,            // -
+    TOKEN_OPERATOR_DECREMENT,           // --
+    TOKEN_OPERATOR_REM,                 // %
+    TOKEN_OPERATOR_BITWISE_AND,         // &
+    TOKEN_OPERATOR_BITWISE_OR,          // |
+    TOKEN_OPERATOR_BITWISE_XOR,         // ^
+    TOKEN_OPERATOR_BITWISE_LEFT_SHIFT,  // <<
+    TOKEN_OPERATOR_BITWISE_RIGHT_SHIFT, // >>
+    TOKEN_OPERATOR_LOGICAL_AND,         // &&
+    TOKEN_OPERATOR_LOGICAL_OR,          // ||
+    TOKEN_ERROR                         // For error reporting
 } token_type_t;
 
 typedef struct
@@ -362,6 +369,35 @@ static bool lex_symbol(lexer_t *lexer, token_list_t *list)
     case '%':
         type = TOKEN_OPERATOR_REM;
         break;
+    case '&':
+        advance_lexer(lexer);
+        if (peek(lexer) == '&')
+        {
+            symbol[1] = '&';
+            type = TOKEN_OPERATOR_LOGICAL_AND;
+        }
+        else
+        {
+            type = TOKEN_OPERATOR_BITWISE_AND;
+            retreat_lexer(lexer);
+        }
+        break;
+    case '|':
+        advance_lexer(lexer);
+        if (peek(lexer) == '|')
+        {
+            symbol[1] = '|';
+            type = TOKEN_OPERATOR_LOGICAL_OR;
+        }
+        else
+        {
+            type = TOKEN_OPERATOR_BITWISE_OR;
+            retreat_lexer(lexer);
+        }
+        break;
+    case '^':
+        type = TOKEN_OPERATOR_BITWISE_XOR;
+        break;
     case '-':
         advance_lexer(lexer);
         if (peek(lexer) == '-')
@@ -414,6 +450,11 @@ static bool lex_symbol(lexer_t *lexer, token_list_t *list)
             symbol[1] = '=';
             type = TOKEN_OPERATOR_LESS_EQUAL;
         }
+        else if (peek(lexer) == '<')
+        {
+            symbol[1] = '<';
+            type = TOKEN_OPERATOR_BITWISE_LEFT_SHIFT;
+        }
         else
         {
             type = TOKEN_OPERATOR_LESS;
@@ -426,6 +467,11 @@ static bool lex_symbol(lexer_t *lexer, token_list_t *list)
         {
             symbol[1] = '=';
             type = TOKEN_OPERATOR_GREATER_EQUAL;
+        }
+        else if (peek(lexer) == '>')
+        {
+            symbol[1] = '>';
+            type = TOKEN_OPERATOR_BITWISE_RIGHT_SHIFT;
         }
         else
         {

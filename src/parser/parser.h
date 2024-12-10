@@ -16,12 +16,16 @@ typedef struct parser_
 
 typedef enum
 {
-    PRECEDENCE_ADD = 0,
-    PRECEDENCE_SUB = 0,
-    PRECEDENCE_MUL = 10,
-    PRECEDENCE_DIV = 10,
-    PRECEDENCE_REM = 10,
-    MIN_PRECEDENCE = PRECEDENCE_ADD,
+    PRECEDENCE_ADD = 80,
+    PRECEDENCE_SUB = 80,
+    PRECEDENCE_MUL = 100,
+    PRECEDENCE_DIV = 100,
+    PRECEDENCE_REM = 100,
+    PRECEDENCE_SHIFT = 60,
+    PRECEDENCE_BITWISE_AND = 50,
+    PRECEDENCE_BITWISE_XOR = 40,
+    PRECEDENCE_BITWISE_OR = 30,
+    MIN_PRECEDENCE = PRECEDENCE_BITWISE_OR,
 } operator_precedence_t;
 
 parser_t *init_parser(token_t *tokens, size_t token_count);
@@ -58,6 +62,15 @@ static operator_precedence_t token_precedence(token_t *token)
         return PRECEDENCE_DIV;
     case TOKEN_OPERATOR_REM:
         return PRECEDENCE_REM;
+    case TOKEN_OPERATOR_BITWISE_LEFT_SHIFT:
+    case TOKEN_OPERATOR_BITWISE_RIGHT_SHIFT:
+        return PRECEDENCE_SHIFT;
+    case TOKEN_OPERATOR_BITWISE_AND:
+        return PRECEDENCE_BITWISE_AND;
+    case TOKEN_OPERATOR_BITWISE_OR:
+        return PRECEDENCE_BITWISE_OR;
+    case TOKEN_OPERATOR_BITWISE_XOR:
+        return PRECEDENCE_BITWISE_XOR;
     default:
         return -1;
     }
@@ -206,6 +219,31 @@ binary_operator_t *parse_binary_operator(parser_t *parser)
         binary_operator->binary_operator = BINARY_REM;
         break;
     }
+    case TOKEN_OPERATOR_BITWISE_AND:
+    {
+        binary_operator->binary_operator = BINARY_AND;
+        break;
+    }
+    case TOKEN_OPERATOR_BITWISE_OR:
+    {
+        binary_operator->binary_operator = BINARY_OR;
+        break;
+    }
+    case TOKEN_OPERATOR_BITWISE_XOR:
+    {
+        binary_operator->binary_operator = BINARY_XOR;
+        break;
+    }
+    case TOKEN_OPERATOR_BITWISE_LEFT_SHIFT:
+    {
+        binary_operator->binary_operator = BINARY_LEFT_SHIFT;
+        break;
+    }
+    case TOKEN_OPERATOR_BITWISE_RIGHT_SHIFT:
+    {
+        binary_operator->binary_operator = BINARY_RIGHT_SHIFT;
+        break;
+    }
     }
 
     advance_token(parser);
@@ -243,7 +281,12 @@ expression_t *parse_expression(parser_t *parser, operator_precedence_t min_prece
               next_token->type == TOKEN_OPERATOR_NEGATION ||
               next_token->type == TOKEN_OPERATOR_DIV ||
               next_token->type == TOKEN_OPERATOR_MUL ||
-              next_token->type == TOKEN_OPERATOR_REM))
+              next_token->type == TOKEN_OPERATOR_REM ||
+              next_token->type == TOKEN_OPERATOR_BITWISE_AND ||
+              next_token->type == TOKEN_OPERATOR_BITWISE_OR ||
+              next_token->type == TOKEN_OPERATOR_BITWISE_XOR ||
+              next_token->type == TOKEN_OPERATOR_BITWISE_LEFT_SHIFT ||
+              next_token->type == TOKEN_OPERATOR_BITWISE_RIGHT_SHIFT))
         {
             break;
         }
@@ -269,7 +312,7 @@ expression_t *parse_expression(parser_t *parser, operator_precedence_t min_prece
         binary_operator_t *bin_op = parse_binary_operator(parser);
         if (!bin_op)
         {
-            free(binary_expr);
+            deallocate(binary_expr);
             return NULL;
         }
         bin_op->base.location.column = next_token->column;
@@ -278,8 +321,8 @@ expression_t *parse_expression(parser_t *parser, operator_precedence_t min_prece
         expression_t *right = parse_expression(parser, current_precedence + 1);
         if (!right)
         {
-            free(binary_expr);
-            free(bin_op);
+            deallocate(binary_expr);
+            deallocate(bin_op);
             return NULL;
         }
 

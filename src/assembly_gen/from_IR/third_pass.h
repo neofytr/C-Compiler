@@ -152,6 +152,9 @@ bool asm_fix_instruction(asm_program_t *asm_program)
 
             switch (binary_instruction->binary_operator->binary_op)
             {
+            case ASM_BINARY_BITWISE_AND:
+            case ASM_BINARY_BITWISE_OR:
+            case ASM_BINARY_BITWISE_XOR:
             case ASM_BINARY_ADD:
             case ASM_BINARY_SUB:
             {
@@ -200,6 +203,7 @@ bool asm_fix_instruction(asm_program_t *asm_program)
                     deallocate(function->instructions);
                     function->instructions = new_instructions;
                     function->instruction_count++;
+                    i++;
                 }
                 break;
             }
@@ -267,7 +271,57 @@ bool asm_fix_instruction(asm_program_t *asm_program)
                     deallocate(function->instructions);
                     function->instructions = new_instructions;
                     function->instruction_count += 2;
+                    i++;
                 }
+                break;
+            }
+            case ASM_BINARY_BITWISE_SHIFT_LEFT:
+            case ASM_BINARY_BITWISE_SHIFT_RIGHT:
+            {
+                asm_operand_t *cl_operand = (asm_operand_t *)allocate(sizeof(asm_operand_t));
+                if (!cl_operand)
+                    return false;
+
+                cl_operand->base.type = ASM_NODE_OPERAND;
+                cl_operand->base.parent = &instruction->base;
+                cl_operand->type = OPERAND_REGISTER;
+                cl_operand->operand.reg.reg_no = ASM_REG_RCX;
+
+                asm_instruction_t *mov_to_cl = (asm_instruction_t *)allocate(sizeof(asm_instruction_t));
+                if (!mov_to_cl)
+                    return false;
+
+                mov_to_cl->base.type = ASM_NODE_INSTRUCTION;
+                mov_to_cl->base.parent = instruction->base.parent;
+                mov_to_cl->type = INSTRUCTION_MOV;
+                mov_to_cl->instr.mov.src = binary_instruction->second_operand;
+                mov_to_cl->instr.mov.dst = cl_operand;
+
+                binary_instruction->second_operand = cl_operand;
+
+                asm_instruction_t **new_instructions = (asm_instruction_t **)allocate(
+                    sizeof(asm_instruction_t *) * (function->instruction_count + 1));
+                if (!new_instructions)
+                    return false;
+
+                for (size_t j = 0; j < i; j++)
+                {
+                    new_instructions[j] = function->instructions[j];
+                }
+
+                new_instructions[i] = mov_to_cl;
+                new_instructions[i + 1] = instruction;
+
+                for (size_t j = i + 1; j < function->instruction_count; j++)
+                {
+                    new_instructions[j + 1] = function->instructions[j];
+                }
+
+                deallocate(function->instructions);
+                function->instructions = new_instructions;
+                function->instruction_count++;
+                i++;
+
                 break;
             }
             default:

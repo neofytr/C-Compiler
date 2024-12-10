@@ -581,6 +581,21 @@ asm_instruction_struct_t handle_ir_instruction(ir_instruction_t *ir_instruction)
             case IR_BINARY_MULTIPLY:
                 asm_binary_op->binary_op = ASM_BINARY_MULT;
                 break;
+            case IR_BINARY_BITWISE_AND:
+                asm_binary_op->binary_op = ASM_BINARY_BITWISE_AND;
+                break;
+            case IR_BINARY_BITWISE_OR:
+                asm_binary_op->binary_op = ASM_BINARY_BITWISE_OR;
+                break;
+            case IR_BINARY_BITWISE_XOR:
+                asm_binary_op->binary_op = ASM_BINARY_BITWISE_XOR;
+                break;
+            case IR_BINARY_BITWISE_LEFT_SHIFT:
+                asm_binary_op->binary_op = ASM_BINARY_BITWISE_SHIFT_LEFT;
+                break;
+            case IR_BINARY_BITWISE_RIGHT_SHIFT:
+                asm_binary_op->binary_op = ASM_BINARY_BITWISE_SHIFT_RIGHT;
+                break;
             default:
                 return NULL_INSTRUCTION_STRUCT_ASM;
             }

@@ -18,6 +18,8 @@ const char *map_register_name(int reg)
         return "r11";
     case ASM_REG_RDX:
         return "rdx";
+    case ASM_REG_RCX:
+        return "rcx";
     default:
         fprintf(stderr, "Error: Unsupported register in map_register_name\n");
         return "";
@@ -312,6 +314,21 @@ bool emit_binary_instruction(asm_instruction_t *asm_instruction, FILE *output_fi
     case ASM_BINARY_MULT:
         op_str = "imul";
         break;
+    case ASM_BINARY_BITWISE_AND:
+        op_str = "and";
+        break;
+    case ASM_BINARY_BITWISE_OR:
+        op_str = "or";
+        break;
+    case ASM_BINARY_BITWISE_XOR:
+        op_str = "xor";
+        break;
+    case ASM_BINARY_BITWISE_SHIFT_LEFT:
+        op_str = "sal";
+        break;
+    case ASM_BINARY_BITWISE_SHIFT_RIGHT:
+        op_str = "sar";
+        break;
     default:
         fprintf(stderr, "Error: Unsupported binary operator\n");
         return false;
@@ -360,6 +377,28 @@ bool emit_binary_instruction(asm_instruction_t *asm_instruction, FILE *output_fi
         snprintf(second_buf, sizeof(second_buf), "%d", second_operand->operand.immediate.value);
         second_str = second_buf;
         break;
+    }
+
+    if (op == ASM_BINARY_BITWISE_SHIFT_LEFT || op == ASM_BINARY_BITWISE_SHIFT_RIGHT)
+    {
+        if (first_operand->type == OPERAND_STACK)
+        {
+            if (fprintf(output_file, "    %s qword %s, cl\n", op_str, first_str) < 0)
+            {
+                fprintf(stderr, "Error writing binary instruction\n");
+                return false;
+            }
+        }
+        else
+        {
+            if (fprintf(output_file, "    %s %s, cl\n", op_str, first_str) < 0)
+            {
+                fprintf(stderr, "Error writing binary instruction\n");
+                return false;
+            }
+        }
+
+        return true;
     }
 
     if (first_operand->type == OPERAND_STACK)

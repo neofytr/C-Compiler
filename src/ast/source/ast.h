@@ -112,6 +112,11 @@ typedef enum
     BINARY_MUL,
     BINARY_DIV,
     BINARY_REM,
+    BINARY_AND,
+    BINARY_XOR,
+    BINARY_OR,
+    BINARY_LEFT_SHIFT,
+    BINARY_RIGHT_SHIFT,
 } binary_operator_type_t;
 
 struct binary_operator_t

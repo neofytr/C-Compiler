@@ -67,6 +67,11 @@ typedef enum ir_binary_operator_type_e
     IR_BINARY_MULTIPLY,
     IR_BINARY_DIVIDE,
     IR_BINARY_REM,
+    IR_BINARY_BITWISE_AND,
+    IR_BINARY_BITWISE_OR,
+    IR_BINARY_BITWISE_XOR,
+    IR_BINARY_BITWISE_LEFT_SHIFT,
+    IR_BINARY_BITWISE_RIGHT_SHIFT,
 } ir_binary_operator_type_t;
 
 typedef struct ir_binary_operator_e

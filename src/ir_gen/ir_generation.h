@@ -57,6 +57,21 @@ ir_binary_operator_t *ir_handle_binary_operator(binary_operator_t *source_binary
     case BINARY_REM:
         ir_binary_operator->operator= IR_BINARY_REM;
         break;
+    case BINARY_AND:
+        ir_binary_operator->operator= IR_BINARY_BITWISE_AND;
+        break;
+    case BINARY_OR:
+        ir_binary_operator->operator= IR_BINARY_BITWISE_OR;
+        break;
+    case BINARY_XOR:
+        ir_binary_operator->operator= IR_BINARY_BITWISE_XOR;
+        break;
+    case BINARY_LEFT_SHIFT:
+        ir_binary_operator->operator= IR_BINARY_BITWISE_LEFT_SHIFT;
+        break;
+    case BINARY_RIGHT_SHIFT:
+        ir_binary_operator->operator= IR_BINARY_BITWISE_RIGHT_SHIFT;
+        break;
     default:
         DEBUG_NULL_RETURN("ir_handle_binary_operator");
         deallocate(ir_binary_operator);

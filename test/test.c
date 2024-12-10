@@ -1,4 +1,4 @@
 int main(void)
 {
-    return 9 / 10;
+    return 9 << 10;
 }

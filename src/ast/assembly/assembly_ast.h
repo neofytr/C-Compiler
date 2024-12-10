@@ -68,6 +68,7 @@ typedef enum
     ASM_REG_R10,
     ASM_REG_RDX,
     ASM_REG_R11,
+    ASM_REG_RCX,
 } asm_reg_no_t;
 
 struct asm_register_
@@ -124,6 +125,11 @@ typedef enum
     ASM_BINARY_ADD,
     ASM_BINARY_SUB,
     ASM_BINARY_MULT,
+    ASM_BINARY_BITWISE_AND,
+    ASM_BINARY_BITWISE_OR,
+    ASM_BINARY_BITWISE_XOR,
+    ASM_BINARY_BITWISE_SHIFT_LEFT,
+    ASM_BINARY_BITWISE_SHIFT_RIGHT,
 } asm_binary_operator_type_t;
 
 struct asm_binary_operator_
