@@ -177,7 +177,6 @@ struct program_t
     function_def_t *function;
 };
 
-// Optional: Inline function for type checking
 static inline bool is_ast_node(ast_node_t *node, ast_node_type_t type)
 {
     return node && node->type == type;

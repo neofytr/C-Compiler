@@ -236,7 +236,6 @@ bool asm_fix_instruction(asm_program_t *asm_program)
                     first_mov->instr.mov.src = imul_instruction->first_operand;
                     first_mov->instr.mov.dst = r11_operand;
 
-                    // Update IMUL to use r11 as destination
                     imul_instruction->first_operand = r11_operand;
 
                     asm_instruction_t *third_mov = (asm_instruction_t *)allocate(sizeof(asm_instruction_t));

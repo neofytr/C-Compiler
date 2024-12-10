@@ -541,7 +541,6 @@ ir_instruction_struct_t ir_handle_statement(statement_t *source_statement)
                 .instruction_count = 1};
         }
 
-        // Use the last instruction's destination as return value
         ir_instruction_t *last_instruction = ir_return_val_instructions[ir_return_val_instruction_count - 1];
         switch (last_instruction->type)
         {
@@ -562,7 +561,6 @@ ir_instruction_struct_t ir_handle_statement(statement_t *source_statement)
             break;
         }
 
-        // Append return instruction to the existing instructions
         ir_instruction_t **new_instructions = (ir_instruction_t **)allocate(
             sizeof(ir_instruction_t *) * (ir_return_val_instruction_count + 1));
 
@@ -578,14 +576,11 @@ ir_instruction_struct_t ir_handle_statement(statement_t *source_statement)
             return NULL_INSTRUCTION_STRUCT;
         }
 
-        // Copy existing instructions
         memcpy(new_instructions, ir_return_val_instructions,
                sizeof(ir_instruction_t *) * ir_return_val_instruction_count);
 
-        // Add return instruction
         new_instructions[ir_return_val_instruction_count] = ir_return_instruction;
 
-        // deallocate the old instructions array
         deallocate(ir_return_val_instructions);
 
         return (ir_instruction_struct_t){

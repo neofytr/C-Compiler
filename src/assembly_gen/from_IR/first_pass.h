@@ -243,7 +243,6 @@ asm_instruction_struct_t handle_ir_instruction(ir_instruction_t *ir_instruction)
                 return NULL_INSTRUCTION_STRUCT_ASM;
             }
 
-            // First instruction: mov first operand to RAX
             asm_instruction_t *asm_instruction_mov_first = (asm_instruction_t *)allocate(sizeof(asm_instruction_t));
             if (!asm_instruction_mov_first)
             {
@@ -261,7 +260,6 @@ asm_instruction_struct_t handle_ir_instruction(ir_instruction_t *ir_instruction)
                 return NULL_INSTRUCTION_STRUCT_ASM;
             }
 
-            // Set source operand based on first binary operand type
             switch (ir_instruction_binary.left->type)
             {
             case IR_VAL_CONSTANT_INT:
