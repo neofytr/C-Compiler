@@ -225,7 +225,6 @@ expression_t *parse_expression(parser_t *parser, operator_precedence_t min_prece
         return NULL;
     }
 
-    // Parse the leftmost term/factor first
     expression_t *left = parse_factor(parser);
     if (!left)
     {
@@ -235,12 +234,10 @@ expression_t *parse_expression(parser_t *parser, operator_precedence_t min_prece
     left->base.location.column = curr_tok->column;
     left->base.location.line = curr_tok->line;
 
-    // Continue parsing while there are more operators with sufficient precedence
     while (true)
     {
         token_t *next_token = peek_token(parser);
 
-        // Check if the next token is a valid binary operator
         if (!next_token ||
             !(next_token->type == TOKEN_OPERATOR_PLUS ||
               next_token->type == TOKEN_OPERATOR_NEGATION ||
@@ -251,14 +248,12 @@ expression_t *parse_expression(parser_t *parser, operator_precedence_t min_prece
             break;
         }
 
-        // Check precedence
         operator_precedence_t current_precedence = token_precedence(next_token);
         if (current_precedence < min_precedence)
         {
             break;
         }
 
-        // Create a new binary expression
         expression_t *binary_expr = (expression_t *)allocate(sizeof(expression_t));
         if (!binary_expr)
         {
@@ -271,7 +266,6 @@ expression_t *parse_expression(parser_t *parser, operator_precedence_t min_prece
         binary_expr->base.parent = NULL;
         binary_expr->expr_type = EXPR_BINARY;
 
-        // Parse the binary operator
         binary_operator_t *bin_op = parse_binary_operator(parser);
         if (!bin_op)
         {
@@ -281,8 +275,6 @@ expression_t *parse_expression(parser_t *parser, operator_precedence_t min_prece
         bin_op->base.location.column = next_token->column;
         bin_op->base.location.line = next_token->line;
 
-        // Recursively parse the right side of the expression
-        // Use current operator's precedence + 1 to handle left-associativity
         expression_t *right = parse_expression(parser, current_precedence + 1);
         if (!right)
         {
@@ -291,19 +283,16 @@ expression_t *parse_expression(parser_t *parser, operator_precedence_t min_prece
             return NULL;
         }
 
-        // Set up the binary expression
         binary_expr->value.binary.op = bin_op;
         binary_expr->value.binary.left_expr = left;
         binary_expr->value.binary.right_expr = right;
 
-        // Update parent-child relationships
         bin_op->base.parent = &(binary_expr->base);
         right->base.parent = &(binary_expr->base);
         right->base.type = NODE_EXPRESSION;
         left->base.type = NODE_EXPRESSION;
         left->base.parent = &(binary_expr->base);
 
-        // The current binary expression becomes the new left expression
         left = binary_expr;
     }
 
