@@ -148,8 +148,6 @@ ir_instruction_struct_t ir_handle_expression(expression_t *source_expression)
         ir_constant_value->type = IR_VAL_CONSTANT_INT;
         ir_constant_value->value.constant_int = source_expression->value.constant_int;
 
-        printf("handling int: %d\n", ir_constant_value->value.constant_int);
-
         return (ir_instruction_struct_t){.instructions = NULL, .instruction_count = 0};
     }
     case EXPR_BINARY:

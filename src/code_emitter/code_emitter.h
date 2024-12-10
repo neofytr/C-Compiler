@@ -14,6 +14,10 @@ const char *map_register_name(int reg)
         return "r10";
     case ASM_REG_RAX:
         return "rax";
+    case ASM_REG_R11:
+        return "r11";
+    case ASM_REG_RDX:
+        return "rdx";
     default:
         fprintf(stderr, "Error: Unsupported register in map_register_name\n");
         return "";
@@ -279,6 +283,170 @@ bool emit_unary_instruction(asm_instruction_t *instruction, FILE *output_file)
     return true;
 }
 
+bool emit_binary_instruction(asm_instruction_t *asm_instruction, FILE *output_file)
+{
+    if (!asm_instruction || !output_file)
+    {
+        fprintf(stderr, "Error: NULL instruction or output file in emit_binary_instruction\n");
+        return false;
+    }
+
+    asm_instruction_binary_t *binary_instruction = &asm_instruction->instr.binary;
+    if (!binary_instruction->binary_operator || !binary_instruction->first_operand || !binary_instruction->second_operand)
+    {
+        fprintf(stderr, "Error: Incomplete binary instruction\n");
+        return false;
+    }
+
+    asm_binary_operator_type_t op = binary_instruction->binary_operator->binary_op;
+    const char *op_str = NULL;
+
+    switch (op)
+    {
+    case ASM_BINARY_ADD:
+        op_str = "add";
+        break;
+    case ASM_BINARY_SUB:
+        op_str = "sub";
+        break;
+    case ASM_BINARY_MULT:
+        op_str = "imul";
+        break;
+    default:
+        fprintf(stderr, "Error: Unsupported binary operator\n");
+        return false;
+    }
+
+    asm_operand_t *first_operand = binary_instruction->first_operand;
+    asm_operand_t *second_operand = binary_instruction->second_operand;
+
+    const char *first_str = NULL;
+    const char *second_str = NULL;
+
+    char first_buf[32];
+    char second_buf[32];
+
+    switch (first_operand->type)
+    {
+    case OPERAND_REGISTER:
+        first_str = map_register_name(first_operand->operand.reg.reg_no);
+        break;
+    case OPERAND_PSEUDO:
+        first_str = first_operand->operand.pseudo.pseudo_name;
+        break;
+    case OPERAND_STACK:
+        snprintf(first_buf, sizeof(first_buf), "[rbp-%d]", -first_operand->operand.stack.offset);
+        first_str = first_buf;
+        break;
+    case OPERAND_IMMEDIATE:
+        snprintf(first_buf, sizeof(first_buf), "%d", first_operand->operand.immediate.value);
+        first_str = first_buf;
+        break;
+    }
+
+    switch (second_operand->type)
+    {
+    case OPERAND_REGISTER:
+        second_str = map_register_name(second_operand->operand.reg.reg_no);
+        break;
+    case OPERAND_PSEUDO:
+        second_str = second_operand->operand.pseudo.pseudo_name;
+        break;
+    case OPERAND_STACK:
+        snprintf(second_buf, sizeof(second_buf), "[rbp-%d]", -second_operand->operand.stack.offset);
+        second_str = second_buf;
+        break;
+    case OPERAND_IMMEDIATE:
+        snprintf(second_buf, sizeof(second_buf), "%d", second_operand->operand.immediate.value);
+        second_str = second_buf;
+        break;
+    }
+
+    if (first_operand->type == OPERAND_STACK)
+    {
+        if (fprintf(output_file, "    %s qword %s, %s\n", op_str, first_str, second_str) < 0)
+        {
+            fprintf(stderr, "Error writing binary instruction\n");
+            return false;
+        }
+    }
+    else
+    {
+        if (fprintf(output_file, "    %s %s, %s\n", op_str, first_str, second_str) < 0)
+        {
+            fprintf(stderr, "Error writing binary instruction\n");
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool emit_cqo_instruction(asm_instruction_t *asm_instruction, FILE *output_file)
+{
+    if (!asm_instruction)
+    {
+        return false;
+    }
+
+    if (!output_file)
+    {
+        return false;
+    }
+
+    fprintf(output_file, "    cqo\n");
+
+    return true;
+}
+
+bool emit_idiv_instruction(asm_instruction_t *asm_instruction, FILE *output_file)
+{
+    if (!asm_instruction)
+    {
+        return false;
+    }
+
+    if (!output_file)
+    {
+        return false;
+    }
+
+    asm_instruction_idiv_t *idiv_instruction = &asm_instruction->instr.idiv;
+    if (!idiv_instruction)
+    {
+        return false;
+    }
+
+    asm_operand_t *idiv_operand = idiv_instruction->operand;
+    if (!idiv_operand)
+    {
+        return false;
+    }
+
+    switch (idiv_operand->type)
+    {
+    case OPERAND_IMMEDIATE:
+    {
+        return false;
+        break;
+    }
+    case OPERAND_REGISTER:
+    {
+        asm_register_t *idiv_reg_operand = &idiv_operand->operand.reg;
+        fprintf(output_file, "    idiv %s\n", map_register_name(idiv_reg_operand->reg_no));
+        break;
+    }
+    case OPERAND_STACK:
+    {
+        asm_stack_t *idiv_stack_operand = &idiv_operand->operand.stack;
+        fprintf(output_file, "    idiv qword [rbp-%d]\n", -idiv_stack_operand->offset);
+        break;
+    }
+    }
+
+    return true;
+}
+
 bool emit_stack_allocation(asm_instruction_t *instruction, FILE *output_file)
 {
     if (!instruction)
@@ -327,6 +495,12 @@ bool emit_asm_instruction(asm_instruction_t *instruction, FILE *output_file)
         return emit_unary_instruction(instruction, output_file);
     case INSTRUCTION_ALLOCATE_STACK:
         return emit_stack_allocation(instruction, output_file);
+    case INSTRUCTION_CQO:
+        return emit_cqo_instruction(instruction, output_file);
+    case INSTRUCTION_IDIV:
+        return emit_idiv_instruction(instruction, output_file);
+    case INSTRUCTION_BINARY:
+        return emit_binary_instruction(instruction, output_file);
     default:
         fprintf(stderr, "Error: Unsupported instruction type\n");
         return false;
