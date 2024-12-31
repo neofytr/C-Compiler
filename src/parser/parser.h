@@ -286,7 +286,15 @@ expression_t *parse_expression(parser_t *parser, operator_precedence_t min_prece
               next_token->type == TOKEN_OPERATOR_BITWISE_OR ||
               next_token->type == TOKEN_OPERATOR_BITWISE_XOR ||
               next_token->type == TOKEN_OPERATOR_BITWISE_LEFT_SHIFT ||
-              next_token->type == TOKEN_OPERATOR_BITWISE_RIGHT_SHIFT))
+              next_token->type == TOKEN_OPERATOR_BITWISE_RIGHT_SHIFT ||
+              next_token->type == TOKEN_OPERATOR_LOGICAL_AND ||
+              next_token->type == TOKEN_OPERATOR_LOGICAL_OR ||
+              next_token->type == TOKEN_OPERATOR_EQUAL ||
+              next_token->type == TOKEN_OPERATOR_NOT_EQUAL ||
+              next_token->type == TOKEN_OPERATOR_LESS ||
+              next_token->type == TOKEN_OPERATOR_LESS_EQUAL ||
+              next_token->type == TOKEN_OPERATOR_GREATER ||
+              next_token->type == TOKEN_OPERATOR_GREATER_EQUAL))
         {
             break;
         }
