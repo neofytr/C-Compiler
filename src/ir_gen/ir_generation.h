@@ -42,12 +42,6 @@ ir_binary_operator_t *ir_handle_binary_operator(binary_operator_t *source_binary
 
     switch (source_binary_operator->binary_operator)
     {
-    case BINARY_ADD:
-        ir_binary_operator->operator= IR_BINARY_ADD;
-        break;
-    case BINARY_SUB:
-        ir_binary_operator->operator= IR_BINARY_SUBTRACT;
-        break;
     case BINARY_MUL:
         ir_binary_operator->operator= IR_BINARY_MULTIPLY;
         break;
@@ -57,21 +51,58 @@ ir_binary_operator_t *ir_handle_binary_operator(binary_operator_t *source_binary
     case BINARY_REM:
         ir_binary_operator->operator= IR_BINARY_REM;
         break;
-    case BINARY_AND:
-        ir_binary_operator->operator= IR_BINARY_BITWISE_AND;
+
+    case BINARY_ADD:
+        ir_binary_operator->operator= IR_BINARY_ADD;
         break;
-    case BINARY_OR:
-        ir_binary_operator->operator= IR_BINARY_BITWISE_OR;
+    case BINARY_SUB:
+        ir_binary_operator->operator= IR_BINARY_SUBTRACT;
         break;
-    case BINARY_XOR:
-        ir_binary_operator->operator= IR_BINARY_BITWISE_XOR;
-        break;
+
     case BINARY_LEFT_SHIFT:
         ir_binary_operator->operator= IR_BINARY_BITWISE_LEFT_SHIFT;
         break;
     case BINARY_RIGHT_SHIFT:
         ir_binary_operator->operator= IR_BINARY_BITWISE_RIGHT_SHIFT;
         break;
+
+    case BINARY_LESS_THAN:
+        ir_binary_operator->operator= IR_BINARY_LESS_THAN;
+        break;
+    case BINARY_LESS_THAN_EQUAL:
+        ir_binary_operator->operator= IR_BINARY_LESS_THAN_EQUAL;
+        break;
+    case BINARY_GREATER_THAN:
+        ir_binary_operator->operator= IR_BINARY_GREATER_THAN;
+        break;
+    case BINARY_GREATER_THAN_EQUAL:
+        ir_binary_operator->operator= IR_BINARY_GREATER_THAN_EQUAL;
+        break;
+
+    case BINARY_EQUAL:
+        ir_binary_operator->operator= IR_BINARY_EQUAL;
+        break;
+    case BINARY_NOT_EQUAL:
+        ir_binary_operator->operator= IR_BINARY_NOT_EQUAL;
+        break;
+
+    case BINARY_BITWISE_AND:
+        ir_binary_operator->operator= IR_BINARY_BITWISE_AND;
+        break;
+    case BINARY_BITWISE_XOR:
+        ir_binary_operator->operator= IR_BINARY_BITWISE_XOR;
+        break;
+    case BINARY_BITWISE_OR:
+        ir_binary_operator->operator= IR_BINARY_BITWISE_OR;
+        break;
+
+    case BINARY_LOGICAL_AND:
+        ir_binary_operator->operator= IR_BINARY_LOGICAL_AND;
+        break;
+    case BINARY_LOGICAL_OR:
+        ir_binary_operator->operator= IR_BINARY_LOGICAL_OR;
+        break;
+
     default:
         DEBUG_NULL_RETURN("ir_handle_binary_operator");
         deallocate(ir_binary_operator);
@@ -130,6 +161,9 @@ ir_unary_operator_t *ir_handle_unary_operator(unary_operator_t *source_unary_ope
     case NEGATE:
         ir_unary_operator->unary_op = IR_UNARY_NEGATE;
         break;
+    case NOT:
+        ir_unary_operator->unary_op = IR_UNARY_NOT;
+        break;
     default:
         DEBUG_NULL_RETURN("ir_handle_unary_operator");
         return NULL;
@@ -181,6 +215,34 @@ ir_instruction_struct_t ir_handle_expression(expression_t *source_expression)
         ir_instruction_struct_t ir_right_instruction_struct = ir_handle_expression(source_right_expr);
         ir_value_t *ir_left_value = NULL;
         ir_value_t *ir_right_value = NULL;
+
+        if (ir_left_instruction_struct.instruction_count > 0)
+        {
+            ir_left_value = allocate(sizeof(ir_value_t));
+            ir_left_value->base.type = IR_NODE_VALUE;
+            ir_left_value->base.parent = NULL;
+            ir_left_value->type = IR_VAL_VARIABLE;
+
+            ir_instruction_t *last_instruction = ir_left_instruction_struct.instructions[ir_left_instruction_struct.instruction_count - 1];
+            switch (last_instruction->type)
+            {
+            case IR_INSTR_BINARY:
+                ir_left_value->value.variable.identifier =
+                    last_instruction->instruction.binary_instr.destination->value.variable.identifier;
+                break;
+            case IR_INSTR_UNARY:
+                ir_left_value->value.variable.identifier =
+                    last_instruction->instruction.unary_instr.destination->value.variable.identifier;
+                break;
+            case IR_INSTR_RETURN:
+                ir_left_value->value.variable.identifier =
+                    last_instruction->instruction.return_instr.value->value.variable.identifier;
+                break;
+            default:
+                ir_left_value = NULL;
+                break;
+            }
+        }
 
         if (ir_left_instruction_struct.instruction_count > 0)
         {

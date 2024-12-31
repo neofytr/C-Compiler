@@ -24,6 +24,7 @@ typedef enum
 {
     IR_UNARY_BITWISE_COMPLEMENT,
     IR_UNARY_NEGATE,
+    IR_UNARY_NOT,
 } ir_unary_operator_type_t;
 
 typedef struct ir_unary_operator_e
@@ -62,16 +63,30 @@ typedef struct ir_value_e
 
 typedef enum ir_binary_operator_type_e
 {
-    IR_BINARY_ADD,
-    IR_BINARY_SUBTRACT,
     IR_BINARY_MULTIPLY,
     IR_BINARY_DIVIDE,
     IR_BINARY_REM,
-    IR_BINARY_BITWISE_AND,
-    IR_BINARY_BITWISE_OR,
-    IR_BINARY_BITWISE_XOR,
+
+    IR_BINARY_ADD,
+    IR_BINARY_SUBTRACT,
+
     IR_BINARY_BITWISE_LEFT_SHIFT,
     IR_BINARY_BITWISE_RIGHT_SHIFT,
+
+    IR_BINARY_LESS_THAN,
+    IR_BINARY_LESS_THAN_EQUAL,
+    IR_BINARY_GREATER_THAN,
+    IR_BINARY_GREATER_THAN_EQUAL,
+
+    IR_BINARY_EQUAL,
+    IR_BINARY_NOT_EQUAL,
+
+    IR_BINARY_BITWISE_AND,
+    IR_BINARY_BITWISE_XOR,
+    IR_BINARY_BITWISE_OR,
+
+    IR_BINARY_LOGICAL_AND,
+    IR_BINARY_LOGICAL_OR,
 } ir_binary_operator_type_t;
 
 typedef struct ir_binary_operator_e
