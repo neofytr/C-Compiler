@@ -94,24 +94,31 @@ struct identifier_t
 
 typedef enum
 {
+    // Multiplicative operators
+    BINARY_MUL,
+    BINARY_DIV,
+    BINARY_REM,
+
     BINARY_ADD,
-    BINARY_AND,
-    BINARY_OR,
-    BINARY_EQUAL,
-    BINARY_NOT_EQUAL,
+    BINARY_SUB,
+
+    BINARY_LEFT_SHIFT,
+    BINARY_RIGHT_SHIFT,
+
     BINARY_LESS_THAN,
     BINARY_LESS_THAN_EQUAL,
     BINARY_GREATER_THAN,
     BINARY_GREATER_THAN_EQUAL,
-    BINARY_SUB,
-    BINARY_MUL,
-    BINARY_DIV,
-    BINARY_REM,
-    BINARY_AND,
-    BINARY_XOR,
-    BINARY_OR,
-    BINARY_LEFT_SHIFT,
-    BINARY_RIGHT_SHIFT,
+
+    BINARY_EQUAL,
+    BINARY_NOT_EQUAL,
+
+    BINARY_BITWISE_AND,
+    BINARY_BITWISE_XOR,
+    BINARY_BITWISE_OR,
+
+    BINARY_LOGICAL_AND,
+    BINARY_LOGICAL_OR,
 } binary_operator_type_t;
 
 struct binary_operator_t

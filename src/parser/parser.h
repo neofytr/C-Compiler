@@ -72,30 +72,54 @@ static operator_precedence_t token_precedence(token_t *token)
 
     switch (token->type)
     {
-    case TOKEN_OPERATOR_PLUS:
-        return PRECEDENCE_ADD;
-    case TOKEN_OPERATOR_NEGATION:
-        return PRECEDENCE_SUB;
     case TOKEN_OPERATOR_MUL:
         return PRECEDENCE_MUL;
     case TOKEN_OPERATOR_DIV:
         return PRECEDENCE_DIV;
     case TOKEN_OPERATOR_REM:
         return PRECEDENCE_REM;
+
+    case TOKEN_OPERATOR_PLUS:
+        return PRECEDENCE_ADD;
+    case TOKEN_OPERATOR_NEGATION:
+        return PRECEDENCE_SUB;
+
     case TOKEN_OPERATOR_BITWISE_LEFT_SHIFT:
     case TOKEN_OPERATOR_BITWISE_RIGHT_SHIFT:
         return PRECEDENCE_SHIFT;
+
+    case TOKEN_OPERATOR_LESS:
+        return PRECEDENCE_LESS;
+    case TOKEN_OPERATOR_LESS_EQUAL:
+        return PRECEDENCE_LESS_EQUAL;
+    case TOKEN_OPERATOR_GREATER:
+        return PRECEDENCE_GREATER;
+    case TOKEN_OPERATOR_GREATER_EQUAL:
+        return PRECEDENCE_GREATER_EQUAL;
+
+    case TOKEN_OPERATOR_EQUAL:
+        return PRECEDENCE_EQUAL;
+    case TOKEN_OPERATOR_NOT_EQUAL:
+        return PRECEDENCE_NOT_EQUAL;
+
     case TOKEN_OPERATOR_BITWISE_AND:
         return PRECEDENCE_BITWISE_AND;
-    case TOKEN_OPERATOR_BITWISE_OR:
-        return PRECEDENCE_BITWISE_OR;
     case TOKEN_OPERATOR_BITWISE_XOR:
         return PRECEDENCE_BITWISE_XOR;
+    case TOKEN_OPERATOR_BITWISE_OR:
+        return PRECEDENCE_BITWISE_OR;
+
+    case TOKEN_OPERATOR_LOGICAL_AND:
+        return PRECEDENCE_LOGICAL_AND;
+    case TOKEN_OPERATOR_LOGICAL_OR:
+        return PRECEDENCE_LOGICAL_OR;
+
+    case TOKEN_OPERATOR_ASSIGN:
+        return PRECEDENCE_ASSIGN;
+
     default:
         return -1;
     }
-
-    return -1;
 }
 
 static void error(const char *message, size_t line, size_t column)
@@ -209,61 +233,74 @@ binary_operator_t *parse_binary_operator(parser_t *parser)
     token_t *curr_tok = peek_token(parser);
     if (!curr_tok)
     {
+        free(binary_operator);
         return NULL;
     }
 
     switch (curr_tok->type)
     {
     case TOKEN_OPERATOR_PLUS:
-    {
         binary_operator->binary_operator = BINARY_ADD;
         break;
-    }
     case TOKEN_OPERATOR_NEGATION:
-    {
         binary_operator->binary_operator = BINARY_SUB;
         break;
-    }
     case TOKEN_OPERATOR_MUL:
-    {
         binary_operator->binary_operator = BINARY_MUL;
         break;
-    }
     case TOKEN_OPERATOR_DIV:
-    {
         binary_operator->binary_operator = BINARY_DIV;
         break;
-    }
     case TOKEN_OPERATOR_REM:
-    {
         binary_operator->binary_operator = BINARY_REM;
         break;
-    }
+
     case TOKEN_OPERATOR_BITWISE_AND:
-    {
-        binary_operator->binary_operator = BINARY_AND;
+        binary_operator->binary_operator = BINARY_BITWISE_AND;
         break;
-    }
     case TOKEN_OPERATOR_BITWISE_OR:
-    {
-        binary_operator->binary_operator = BINARY_OR;
+        binary_operator->binary_operator = BINARY_BITWISE_OR;
         break;
-    }
     case TOKEN_OPERATOR_BITWISE_XOR:
-    {
-        binary_operator->binary_operator = BINARY_XOR;
+        binary_operator->binary_operator = BINARY_BITWISE_XOR;
         break;
-    }
     case TOKEN_OPERATOR_BITWISE_LEFT_SHIFT:
-    {
         binary_operator->binary_operator = BINARY_LEFT_SHIFT;
         break;
-    }
     case TOKEN_OPERATOR_BITWISE_RIGHT_SHIFT:
-    {
         binary_operator->binary_operator = BINARY_RIGHT_SHIFT;
         break;
-    }
+
+    case TOKEN_OPERATOR_LESS:
+        binary_operator->binary_operator = BINARY_LESS_THAN;
+        break;
+    case TOKEN_OPERATOR_LESS_EQUAL:
+        binary_operator->binary_operator = BINARY_LESS_THAN_EQUAL;
+        break;
+    case TOKEN_OPERATOR_GREATER:
+        binary_operator->binary_operator = BINARY_GREATER_THAN;
+        break;
+    case TOKEN_OPERATOR_GREATER_EQUAL:
+        binary_operator->binary_operator = BINARY_GREATER_THAN_EQUAL;
+        break;
+
+    case TOKEN_OPERATOR_EQUAL:
+        binary_operator->binary_operator = BINARY_EQUAL;
+        break;
+    case TOKEN_OPERATOR_NOT_EQUAL:
+        binary_operator->binary_operator = BINARY_NOT_EQUAL;
+        break;
+
+    case TOKEN_OPERATOR_LOGICAL_AND:
+        binary_operator->binary_operator = BINARY_LOGICAL_AND;
+        break;
+    case TOKEN_OPERATOR_LOGICAL_OR:
+        binary_operator->binary_operator = BINARY_LOGICAL_OR;
+        break;
+
+    default:
+        free(binary_operator);
+        return NULL;
     }
 
     advance_token(parser);
