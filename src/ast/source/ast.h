@@ -4,7 +4,6 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-// Forward declarations to avoid circular dependencies
 typedef struct ast_node_t ast_node_t;
 typedef struct function_def_t function_def_t;
 typedef struct statement_t statement_t;
@@ -16,10 +15,6 @@ typedef struct unary_operator_t unary_operator_t;
 typedef struct binary_t binary_t;
 typedef struct binary_operator_t binary_operator_t;
 
-/**
- * Enum representing different types of AST nodes
- * Helps with runtime type checking and traversal
- */
 typedef enum ast_node_type_e
 {
     NODE_PROGRAM,
@@ -31,10 +26,6 @@ typedef enum ast_node_type_e
     NODE_BINARY_OP,
 } ast_node_type_t;
 
-/**
- * Enum representing different types of expressions
- * Supports pattern matching and type-specific processing
- */
 typedef enum expression_type_e
 {
     EXPR_CONSTANT_INT,
@@ -43,10 +34,6 @@ typedef enum expression_type_e
     EXPR_BINARY,
 } expression_type_t;
 
-/**
- * Enum representing different types of statements
- * Allows for extensible statement handling
- */
 typedef enum statement_type_e
 {
     STMT_RETURN
@@ -54,7 +41,6 @@ typedef enum statement_type_e
 
 /**
  * Base AST node with common metadata for all node types
- * Enables hierarchical tree traversal and error reporting
  */
 struct ast_node_t
 {
@@ -64,7 +50,7 @@ struct ast_node_t
         size_t line;
         size_t column;
     } location;
-    ast_node_t *parent; // Use  for immutability
+    ast_node_t *parent;
 };
 
 /**
@@ -75,6 +61,7 @@ typedef enum
 {
     BITWISE_COMPLEMENT,
     NEGATE,
+    NOT,
 } unary_operator_type_t;
 
 struct unary_operator_t
@@ -108,6 +95,14 @@ struct identifier_t
 typedef enum
 {
     BINARY_ADD,
+    BINARY_AND,
+    BINARY_OR,
+    BINARY_EQUAL,
+    BINARY_NOT_EQUAL,
+    BINARY_LESS_THAN,
+    BINARY_LESS_THAN_EQUAL,
+    BINARY_GREATER_THAN,
+    BINARY_GREATER_THAN_EQUAL,
     BINARY_SUB,
     BINARY_MUL,
     BINARY_DIV,

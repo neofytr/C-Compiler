@@ -54,6 +54,7 @@ typedef enum
     TOKEN_OPERATOR_DECREMENT,           // --
     TOKEN_OPERATOR_REM,                 // %
     TOKEN_OPERATOR_BITWISE_AND,         // &
+    TOKEN_OPERATOR_NOT,                 // !
     TOKEN_OPERATOR_BITWISE_OR,          // |
     TOKEN_OPERATOR_BITWISE_XOR,         // ^
     TOKEN_OPERATOR_BITWISE_LEFT_SHIFT,  // <<
@@ -439,7 +440,7 @@ static bool lex_symbol(lexer_t *lexer, token_list_t *list)
         }
         else
         {
-            valid = false; // '!' alone is not valid in this grammar
+            type = TOKEN_OPERATOR_NOT;
             retreat_lexer(lexer);
         }
         break;

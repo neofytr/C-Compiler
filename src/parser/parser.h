@@ -415,6 +415,7 @@ expression_t *parse_factor(parser_t *parser)
     }
 
     case TOKEN_OPERATOR_NEGATION:
+    case TOKEN_OPERATOR_NOT:
     case TOKEN_OPERATOR_BITWISE_COMPLEMENT:
     {
         token_type_t unary_op_type = token->type;
@@ -448,7 +449,18 @@ expression_t *parse_factor(parser_t *parser)
         unary_operator->base.location.column = token->column;
         unary_operator->base.location.line = token->line;
         unary_operator->base.type = NODE_UNARY_OP;
-        unary_operator->op = (unary_op_type == TOKEN_OPERATOR_NEGATION) ? NEGATE : BITWISE_COMPLEMENT;
+        switch (unary_op_type)
+        {
+        case TOKEN_OPERATOR_NEGATION:
+            unary_operator->op = NEGATE;
+            break;
+        case TOKEN_OPERATOR_BITWISE_COMPLEMENT:
+            unary_operator->op = BITWISE_COMPLEMENT;
+            break;
+        case TOKEN_OPERATOR_NOT:
+            unary_operator->op = NOT;
+            break;
+        }
 
         expression->value.unary.unary_operator = unary_operator;
         break;
