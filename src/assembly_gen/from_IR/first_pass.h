@@ -56,7 +56,7 @@ asm_instruction_struct_t handle_ir_instruction(ir_instruction_t *ir_instruction)
         label->base.parent = &asm_instruction_label->base;
         label->base.type = ASM_NODE_IDENTIFIER;
 
-        label->name = ir_instruction->instruction.label_instr.identifier;
+        label->name = ir_instruction->instruction.label_instr.identifier->name;
 
         asm_instruction_label->instr.label.label = label;
 
@@ -116,7 +116,7 @@ asm_instruction_struct_t handle_ir_instruction(ir_instruction_t *ir_instruction)
         case IR_VAL_VARIABLE:
         {
             asm_src->type = OPERAND_PSEUDO;
-            asm_src->operand.pseudo.pseudo_name = copy_src->value.variable.identifier;
+            asm_src->operand.pseudo.pseudo_name = copy_src->value.variable.identifier->name;
             break;
         }
         }
@@ -132,7 +132,7 @@ asm_instruction_struct_t handle_ir_instruction(ir_instruction_t *ir_instruction)
         case IR_VAL_VARIABLE:
         {
             asm_dest->type = OPERAND_PSEUDO;
-            asm_dest->operand.pseudo.pseudo_name = copy_dest->value.variable.identifier;
+            asm_dest->operand.pseudo.pseudo_name = copy_dest->value.variable.identifier->name;
             break;
         }
         }
@@ -175,7 +175,7 @@ asm_instruction_struct_t handle_ir_instruction(ir_instruction_t *ir_instruction)
 
         target->base.parent = &asm_instruction_jmp->base;
         target->base.type = ASM_NODE_IDENTIFIER;
-        target->name = ir_instruction->instruction.jmp_instr.target;
+        target->name = ir_instruction->instruction.jmp_instr.target->name;
 
         asm_instruction_jmp->instr.jmp.target = target;
 
@@ -233,7 +233,7 @@ asm_instruction_struct_t handle_ir_instruction(ir_instruction_t *ir_instruction)
             break;
         case IR_VAL_VARIABLE:
             cmp_first->type = OPERAND_PSEUDO;
-            cmp_first->operand.pseudo.pseudo_name = condition->value.variable.identifier;
+            cmp_first->operand.pseudo.pseudo_name = condition->value.variable.identifier->name;
             break;
         default:
             return NULL_INSTRUCTION_STRUCT_ASM;
@@ -319,7 +319,7 @@ asm_instruction_struct_t handle_ir_instruction(ir_instruction_t *ir_instruction)
             break;
         case IR_VAL_VARIABLE:
             cmp_first->type = OPERAND_PSEUDO;
-            cmp_first->operand.pseudo.pseudo_name = condition->value.variable.identifier;
+            cmp_first->operand.pseudo.pseudo_name = condition->value.variable.identifier->name;
             break;
         default:
             return NULL_INSTRUCTION_STRUCT_ASM;
@@ -569,6 +569,7 @@ asm_instruction_struct_t handle_ir_instruction(ir_instruction_t *ir_instruction)
             result.instructions[2] = asm_instruction_setcc;
 
             return result;
+            break;
         }
         case IR_UNARY_BITWISE_COMPLEMENT:
         case IR_UNARY_NEGATE:
@@ -668,6 +669,7 @@ asm_instruction_struct_t handle_ir_instruction(ir_instruction_t *ir_instruction)
             return result;
         }
         }
+        break;
     }
     case IR_INSTR_BINARY:
     {
@@ -1213,6 +1215,8 @@ asm_instruction_struct_t handle_ir_instruction(ir_instruction_t *ir_instruction)
     }
         return NULL_INSTRUCTION_STRUCT_ASM;
     }
+
+    return NULL_INSTRUCTION_STRUCT_ASM;
 }
 
 asm_identifier_t *handle_ir_identifier(ir_identifier_t *ir_identifier)

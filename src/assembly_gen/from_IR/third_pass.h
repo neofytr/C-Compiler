@@ -9,6 +9,8 @@ bool asm_third_pass(asm_program_t *asm_program, int final_offset);
 bool asm_insert_alloc_stack(asm_program_t *asm_program, int final_offset);
 bool asm_fix_instruction(asm_program_t *asm_program);
 
+/* We use R10 to fix an instruction's first operand; and R11 to fix an instruction's second operand */
+
 bool asm_third_pass(asm_program_t *asm_program, int final_offset)
 {
     return asm_insert_alloc_stack(asm_program, final_offset) && asm_fix_instruction(asm_program);
