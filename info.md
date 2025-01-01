@@ -91,3 +91,64 @@ Thus for
 3. a >= b: OF = SF
 4. a < b: ZF = 0 and OF != SF
 5. a <= b: OF != SF
+
+# Undefined Behavior Alert!
+
+If the `add` and `sub` instructions can result in signed integer overflow, why didn't we account for that before? We didn't need to because the signed integer overflow in C is undefined behavior, where the standard doesn't tell you what should happen. Compilers are permitted to handle undefined behavior however they want - or not handle it at all.
+
+When an signed integer expression in C overflows, for examples, the result usually wraps around like the examples we saw earlier. However, it's equally acceptable for the program to generate a result at random, raise a signal, or erase your hard drive. That last option may sound unlikely, but production compilers really do handle undefined behavior in surprising (and arguably undesirable) ways. Take the following program:
+
+```c
+
+#include <stdio.h>
+
+int main(void)
+{
+    for (int i = 2147483646; i > 0; i = i + 1)
+    {
+        printf ("The number is %d\n", i);
+    }
+    return 0;
+}
+
+```
+
+The largest value an int can hold is 2,147,483,647, so the expression i + 1 overflows the second time we execute it. When the add assembly instruction overflows, it produces a negative result, so we might expect this loop to execute twice, then stop because the condition i > 0 no longer holds. That’s exactly what happens if you compile this program without optimizations, at least with the versions of Clang and GCC that I tried.
+
+```bash
+
+$ clang overflow.c
+$ ./a.out
+The number is 2147483646
+The number is 2147483647
+
+```
+
+But if we enable optimizations, the behavior might change completely:
+
+```bash
+
+$ clang -O overflow.c
+$ ./a.out
+The number is 2147483646
+The number is 2147483647
+The number is -2147483648
+The number is -2147483647
+The number is -2147483646
+The number is -2147483645
+--snip--
+
+```
+
+What happened? The compiler tried to optimize the program by removing conditional checks that always succeed. The initial value of i is positive, and it’s updated only in the expression i = i + 1, so the compiler concluded that the condition i > 0 is always true. That’s correct, as long as i doesn’t overflow. It’s incorrect if i does overflow, of course, but that’s undefined behavior, so the compiler didn’t have to account for it. It therefore removed the condition entirely, resulting
+in a loop that never terminates.
+
+I used Clang for this example because GCC produced completely different, even less intuitive behavior. You may well see different results if you compile this program on your own machine. Try it out with a few different optimization levels, and see what happens.
+
+Note that setting the overflow flag in assembly doesn't necessarily indicate overflow in the source program. For example, when we implement an expression like a < 10 with `cmp`, that `cmp` instruction may set the overflow flag. But the result of a < 10 is either 0 or 1 - both of which are in the range of `int` - so the expression itself doesn't overflow. This expression won't produce undefined behavior, regardless of how we implement it in assembly.
+
+C has a bunch of different kinds of undefined behavior; integer overflow is just one example. It’s a particularly ugly example, though, because it’s difficult to avoid and can have dire consequences, including security vulnerabilities. To address this long-standing problem, the next version of the C standard, C23, adds a few standard library functions that perform checked integer operations. If you use the new ckd_add, ckd_sub, and ckd_mul functions instead of the +, -, and * operators, you’ll get an informative return code instead of undefined behavior when the result is out of bounds. To learn more about these new library functions, see Jens Gustedt’s blog post titled “Checked Integer Arithmetic in the Prospect of C23” (https://gustedt.wordpress.com/2022/12/18/checked -integer-arithmetic-in-the-prospect-of-c23/).
+
+Undefined behavior is different from *unspecified behavior*. If some aspect of a program's behavior is unspecified, there are several possible ways it could behave, but it can't behave totally unpredictably. For example, before, we learned that the operands in a binary expression are unsequenced (or indeterminately sequenced, if either is a function call), so their evaluation order is unspecified. This doesn't mean the expression's behavior is undefined: there's just two possibilities (evaluating left operand before right or vice versa) and a compiler designer must chose which to implement. 
+
+When we evaluate the expression printf("Hello, ") + printf("World!"), the program can print either "Hello, " or "World!" first, but it can’t go off and do something else entirely. Unsequenced operations can produce undefined behavior under certain circumstances—say, if you perform two unsequenced updates to the same variable—but performing unsequenced or indeterminately sequenced operations is not an undefined behavior in and of itself.
