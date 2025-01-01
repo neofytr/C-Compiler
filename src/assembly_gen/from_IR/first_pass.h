@@ -36,6 +36,47 @@ asm_instruction_struct_t handle_ir_instruction(ir_instruction_t *ir_instruction)
     ir_instruction_type_t ir_instruction_type = ir_instruction->type;
     switch (ir_instruction_type)
     {
+    case IR_INSTR_LABEL:
+    {
+        asm_instruction_t *asm_instruction_label = (asm_instruction_t *)allocate(sizeof(asm_instruction_t));
+        if (!asm_instruction_label)
+        {
+            return NULL_INSTRUCTION_STRUCT_ASM;
+        }
+
+        asm_instruction_label->base.type = ASM_NODE_INSTRUCTION;
+        asm_instruction_label->type = INSTRUCTION_LABEL;
+
+        asm_identifier_t *label = (asm_identifier_t *)allocate(sizeof(asm_identifier_t));
+        if (!label)
+        {
+            return NULL_INSTRUCTION_STRUCT_ASM;
+        }
+
+        label->base.parent = &asm_instruction_label->base;
+        label->base.type = ASM_NODE_IDENTIFIER;
+
+        label->name = ir_instruction->instruction.label_instr.identifier;
+
+        asm_instruction_label->instr.label.label = label;
+
+        asm_instruction_t **asm_instructions = (asm_instruction_t **)allocate(sizeof(asm_instruction_t *) * 2);
+        if (!asm_instructions)
+        {
+            return NULL_INSTRUCTION_STRUCT_ASM;
+        }
+        size_t asm_instruction_count = 1;
+
+        asm_instructions[0] = asm_instruction_label;
+
+        asm_instruction_struct_t asm_instructions_struct = (asm_instruction_struct_t){
+            .instructions = asm_instructions,
+            .instruction_count = asm_instruction_count,
+        };
+
+        return asm_instructions_struct;
+        break;
+    }
     case IR_INSTR_COPY:
     {
         asm_instruction_t *asm_instruction_mov = (asm_instruction_t *)allocate(sizeof(asm_instruction_t));
