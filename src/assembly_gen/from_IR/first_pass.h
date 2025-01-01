@@ -36,6 +36,216 @@ asm_instruction_struct_t handle_ir_instruction(ir_instruction_t *ir_instruction)
     ir_instruction_type_t ir_instruction_type = ir_instruction->type;
     switch (ir_instruction_type)
     {
+    case IR_INSTR_JUMP:
+    {
+        asm_instruction_t *asm_instruction_jmp = (asm_instruction_t *)allocate(sizeof(asm_instruction_t));
+        if (!asm_instruction_jmp)
+        {
+            return NULL_INSTRUCTION_STRUCT_ASM;
+        }
+
+        asm_instruction_jmp->type = INSTRUCTION_JMP;
+
+        asm_identifier_t *target = (asm_identifier_t *)allocate(sizeof(asm_identifier_t));
+        if (!target)
+        {
+            return NULL_INSTRUCTION_STRUCT_ASM;
+        }
+
+        target->base.parent = &asm_instruction_jmp->base;
+        target->base.type = ASM_NODE_IDENTIFIER;
+        target->name = ir_instruction->instruction.jmp_instr.target;
+
+        asm_instruction_jmp->instr.jmp.target = target;
+
+        asm_instruction_t **asm_instructions = (asm_instruction_t **)allocate(sizeof(asm_instruction_t *) * 2);
+        if (!asm_instructions)
+        {
+            return NULL_INSTRUCTION_STRUCT_ASM;
+        }
+        size_t asm_instruction_count = 1;
+
+        asm_instructions[0] = asm_instruction_jmp;
+
+        asm_instruction_struct_t asm_instructions_struct = (asm_instruction_struct_t){
+            .instructions = asm_instructions,
+            .instruction_count = asm_instruction_count,
+        };
+
+        return asm_instructions_struct;
+        break;
+    }
+    case IR_INSTR_JUMP_IF_ZERO:
+    {
+
+        asm_instruction_t *asm_instruction_cmp = (asm_instruction_t *)allocate(sizeof(asm_instruction_t));
+        if (!asm_instruction_cmp)
+        {
+            return NULL_INSTRUCTION_STRUCT_ASM;
+        }
+
+        asm_instruction_cmp->type = INSTRUCTION_CMP;
+        asm_instruction_cmp->base.type = ASM_NODE_INSTRUCTION;
+
+        asm_operand_t *cmp_first = (asm_operand_t *)allocate(sizeof(asm_operand_t));
+        asm_operand_t *cmp_second = (asm_operand_t *)allocate(sizeof(asm_operand_t));
+
+        if (!cmp_first || !cmp_second)
+        {
+            return NULL_INSTRUCTION_STRUCT_ASM;
+        }
+
+        cmp_first->base.parent = &asm_instruction_cmp->base;
+        cmp_first->base.type = ASM_NODE_OPERAND;
+
+        cmp_second->base.parent = &asm_instruction_cmp->base;
+        cmp_second->base.type = ASM_NODE_OPERAND;
+
+        ir_instruction_jz_t ir_instruction_jz = ir_instruction->instruction.jz_instr;
+        ir_value_t *condition = ir_instruction_jz.condition;
+
+        switch (condition->type)
+        {
+        case IR_VAL_CONSTANT_INT:
+            cmp_first->type = OPERAND_IMMEDIATE;
+            cmp_first->operand.immediate.value = condition->value.constant_int;
+            break;
+        case IR_VAL_VARIABLE:
+            cmp_first->type = OPERAND_PSEUDO;
+            cmp_first->operand.pseudo.pseudo_name = condition->value.variable.identifier;
+            break;
+        default:
+            return NULL_INSTRUCTION_STRUCT_ASM;
+        }
+
+        cmp_second->type = OPERAND_IMMEDIATE;
+        cmp_second->operand.immediate.value = 0;
+
+        asm_instruction_cmp->instr.cmp.first_operand = cmp_first;
+        asm_instruction_cmp->instr.cmp.second_operand = cmp_second;
+
+        asm_instruction_t *asm_instruction_jmpcc = (asm_instruction_t *)allocate(sizeof(asm_instruction_t));
+        if (!asm_instruction_jmpcc)
+        {
+            return NULL_INSTRUCTION_STRUCT_ASM;
+        }
+
+        asm_instruction_jmpcc->base.type = ASM_NODE_INSTRUCTION;
+        asm_instruction_jmpcc->type = INSTRUCTION_JMPCC;
+
+        asm_instruction_jmpcc->instr.jmpcc.condition = COND_E;
+
+        asm_identifier_t *target = (asm_identifier_t *)allocate(sizeof(asm_identifier_t));
+        if (!target)
+        {
+            return NULL_INSTRUCTION_STRUCT_ASM;
+        }
+
+        target->base.parent = &asm_instruction_jmpcc->base;
+        target->base.type = ASM_NODE_IDENTIFIER;
+        target->name = ir_instruction_jz.target->name;
+
+        asm_instruction_jmpcc->instr.jmpcc.target = target;
+
+        asm_instruction_t **asm_instructions = (asm_instruction_t **)allocate(sizeof(asm_instruction_t *) * 2);
+        if (!asm_instructions)
+        {
+            return NULL_INSTRUCTION_STRUCT_ASM;
+        }
+        size_t asm_instruction_count = 2;
+
+        asm_instructions[0] = asm_instruction_cmp;
+        asm_instructions[1] = asm_instruction_jmpcc;
+
+        asm_instruction_struct_t asm_instructions_struct = (asm_instruction_struct_t){
+            .instructions = asm_instructions,
+            .instruction_count = asm_instruction_count,
+        };
+
+        return asm_instructions_struct;
+        break;
+    }
+    case IR_INSTR_JUMP_IF_NOT_ZERO:
+    {
+        asm_instruction_t *asm_instruction_cmp = (asm_instruction_t *)allocate(sizeof(asm_instruction_t));
+        if (!asm_instruction_cmp)
+        {
+            return NULL_INSTRUCTION_STRUCT_ASM;
+        }
+        asm_instruction_cmp->type = INSTRUCTION_CMP;
+        asm_instruction_cmp->base.type = ASM_NODE_INSTRUCTION;
+
+        asm_operand_t *cmp_first = (asm_operand_t *)allocate(sizeof(asm_operand_t));
+        asm_operand_t *cmp_second = (asm_operand_t *)allocate(sizeof(asm_operand_t));
+        if (!cmp_first || !cmp_second)
+        {
+            return NULL_INSTRUCTION_STRUCT_ASM;
+        }
+
+        cmp_first->base.parent = &asm_instruction_cmp->base;
+        cmp_first->base.type = ASM_NODE_OPERAND;
+        cmp_second->base.parent = &asm_instruction_cmp->base;
+        cmp_second->base.type = ASM_NODE_OPERAND;
+
+        ir_instruction_jz_t ir_instruction_jz = ir_instruction->instruction.jz_instr;
+        ir_value_t *condition = ir_instruction_jz.condition;
+
+        switch (condition->type)
+        {
+        case IR_VAL_CONSTANT_INT:
+            cmp_first->type = OPERAND_IMMEDIATE;
+            cmp_first->operand.immediate.value = condition->value.constant_int;
+            break;
+        case IR_VAL_VARIABLE:
+            cmp_first->type = OPERAND_PSEUDO;
+            cmp_first->operand.pseudo.pseudo_name = condition->value.variable.identifier;
+            break;
+        default:
+            return NULL_INSTRUCTION_STRUCT_ASM;
+        }
+
+        cmp_second->type = OPERAND_IMMEDIATE;
+        cmp_second->operand.immediate.value = 0;
+
+        asm_instruction_cmp->instr.cmp.first_operand = cmp_first;
+        asm_instruction_cmp->instr.cmp.second_operand = cmp_second;
+
+        asm_instruction_t *asm_instruction_jmpcc = (asm_instruction_t *)allocate(sizeof(asm_instruction_t));
+        if (!asm_instruction_jmpcc)
+        {
+            return NULL_INSTRUCTION_STRUCT_ASM;
+        }
+        asm_instruction_jmpcc->base.type = ASM_NODE_INSTRUCTION;
+        asm_instruction_jmpcc->type = INSTRUCTION_JMPCC;
+
+        asm_instruction_jmpcc->instr.jmpcc.condition = COND_NE;
+
+        asm_identifier_t *target = (asm_identifier_t *)allocate(sizeof(asm_identifier_t));
+        if (!target)
+        {
+            return NULL_INSTRUCTION_STRUCT_ASM;
+        }
+        target->base.parent = &asm_instruction_jmpcc->base;
+        target->base.type = ASM_NODE_IDENTIFIER;
+        target->name = ir_instruction_jz.target->name;
+        asm_instruction_jmpcc->instr.jmpcc.target = target;
+
+        asm_instruction_t **asm_instructions = (asm_instruction_t **)allocate(sizeof(asm_instruction_t *) * 2);
+        if (!asm_instructions)
+        {
+            return NULL_INSTRUCTION_STRUCT_ASM;
+        }
+        size_t asm_instruction_count = 2;
+
+        asm_instructions[0] = asm_instruction_cmp;
+        asm_instructions[1] = asm_instruction_jmpcc;
+
+        asm_instruction_struct_t asm_instructions_struct = (asm_instruction_struct_t){
+            .instructions = asm_instructions,
+            .instruction_count = asm_instruction_count,
+        };
+        return asm_instructions_struct;
+    }
     case IR_INSTR_RETURN:
     {
         asm_instruction_t *asm_instruction_mov = (asm_instruction_t *)allocate(sizeof(asm_instruction_t));
@@ -479,6 +689,157 @@ asm_instruction_struct_t handle_ir_instruction(ir_instruction_t *ir_instruction)
             result.instructions[1] = asm_instruction_cqo;
             result.instructions[2] = asm_instruction_idiv;
             result.instructions[3] = asm_instruction_mov_result;
+
+            return result;
+        }
+
+        case IR_BINARY_EQUAL:
+        case IR_BINARY_NOT_EQUAL:
+        case IR_BINARY_GREATER_THAN:
+        case IR_BINARY_GREATER_THAN_EQUAL:
+        case IR_BINARY_LESS_THAN:
+        case IR_BINARY_LESS_THAN_EQUAL:
+        {
+            // for relational operators, we need 3 instructions:
+            // 1. Compare the operands
+            // 2. Move 0 to destination
+            // 3. Set the destination based on condition
+            asm_instruction_struct_t result = {
+                .instructions = (asm_instruction_t **)allocate(3 * sizeof(asm_instruction_t *)),
+                .instruction_count = 3,
+            };
+
+            if (!result.instructions)
+            {
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            asm_instruction_t *asm_instruction_cmp = (asm_instruction_t *)allocate(sizeof(asm_instruction_t));
+            if (!asm_instruction_cmp)
+            {
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            asm_instruction_cmp->type = INSTRUCTION_CMP;
+            asm_instruction_cmp->base.type = ASM_NODE_INSTRUCTION;
+
+            asm_operand_t *cmp_first = (asm_operand_t *)allocate(sizeof(asm_operand_t));
+            asm_operand_t *cmp_second = (asm_operand_t *)allocate(sizeof(asm_operand_t));
+
+            if (!cmp_first || !cmp_second)
+            {
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            switch (ir_instruction_binary.right->type)
+            {
+            case IR_VAL_CONSTANT_INT:
+                cmp_second->type = OPERAND_IMMEDIATE;
+                cmp_second->operand.immediate.value = ir_instruction_binary.right->value.constant_int;
+                break;
+            case IR_VAL_VARIABLE:
+                cmp_second->type = OPERAND_PSEUDO;
+                cmp_second->operand.pseudo.pseudo_name = ir_instruction_binary.right->value.variable.identifier->name;
+                break;
+            default:
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            switch (ir_instruction_binary.left->type)
+            {
+            case IR_VAL_CONSTANT_INT:
+                cmp_first->type = OPERAND_IMMEDIATE;
+                cmp_second->operand.immediate.value = ir_instruction_binary.left->value.constant_int;
+                break;
+            case IR_VAL_VARIABLE:
+                cmp_first->type = OPERAND_PSEUDO;
+                cmp_first->operand.pseudo.pseudo_name = ir_instruction_binary.left->value.variable.identifier->name;
+                break;
+            default:
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            asm_instruction_cmp->instr.cmp = (asm_instruction_cmp_t){
+                .first_operand = cmp_first,
+                .second_operand = cmp_second};
+
+            asm_instruction_t *asm_instruction_mov = (asm_instruction_t *)allocate(sizeof(asm_instruction_t));
+            if (!asm_instruction_mov)
+            {
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            asm_instruction_mov->type = INSTRUCTION_MOV;
+            asm_instruction_mov->base.type = ASM_NODE_INSTRUCTION;
+
+            asm_operand_t *mov_src = (asm_operand_t *)allocate(sizeof(asm_operand_t));
+            asm_operand_t *mov_dst = (asm_operand_t *)allocate(sizeof(asm_operand_t));
+
+            if (!mov_src || !mov_dst)
+            {
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            mov_src->type = OPERAND_IMMEDIATE;
+            mov_src->operand.immediate.value = 0;
+
+            mov_dst->type = OPERAND_PSEUDO;
+            mov_dst->operand.pseudo.pseudo_name = ir_instruction_binary.destination->value.variable.identifier->name;
+
+            asm_instruction_mov->instr.mov = (asm_instruction_mov_t){
+                .src = mov_src,
+                .dst = mov_dst};
+
+            asm_instruction_t *asm_instruction_setcc = (asm_instruction_t *)allocate(sizeof(asm_instruction_t));
+            if (!asm_instruction_setcc)
+            {
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            asm_instruction_setcc->type = INSTRUCTION_SETCC;
+            asm_instruction_setcc->base.type = ASM_NODE_INSTRUCTION;
+
+            asm_condition_code_t condition;
+            switch (ir_binary_operator_type)
+            {
+            case IR_BINARY_EQUAL:
+                condition = COND_E;
+                break;
+            case IR_BINARY_NOT_EQUAL:
+                condition = COND_NE;
+                break;
+            case IR_BINARY_GREATER_THAN:
+                condition = COND_G;
+                break;
+            case IR_BINARY_GREATER_THAN_EQUAL:
+                condition = COND_GE;
+                break;
+            case IR_BINARY_LESS_THAN:
+                condition = COND_L;
+                break;
+            case IR_BINARY_LESS_THAN_EQUAL:
+                condition = COND_LE;
+                break;
+            default:
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            asm_operand_t *setcc_dst = (asm_operand_t *)allocate(sizeof(asm_operand_t));
+            if (!setcc_dst)
+            {
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            setcc_dst->type = OPERAND_PSEUDO;
+            setcc_dst->operand.pseudo.pseudo_name = ir_instruction_binary.destination->value.variable.identifier->name;
+
+            asm_instruction_setcc->instr.setcc = (asm_instruction_setcc_t){
+                .condition = condition,
+                .dst = setcc_dst};
+
+            result.instructions[0] = asm_instruction_cmp;
+            result.instructions[1] = asm_instruction_mov;
+            result.instructions[2] = asm_instruction_setcc;
 
             return result;
         }
