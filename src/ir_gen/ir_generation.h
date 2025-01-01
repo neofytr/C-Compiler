@@ -371,7 +371,7 @@ ir_instruction_struct_t ir_handle_expression(expression_t *source_expression)
         {
             total_instruction_count =
                 ir_left_instruction_struct.instruction_count +
-                ir_right_instruction_struct.instruction_count + 8;
+                ir_right_instruction_struct.instruction_count + 7;
         }
         else
         {
@@ -1028,10 +1028,18 @@ ir_instruction_struct_t ir_handle_statement(statement_t *source_statement)
         ir_instruction_t *last_instruction = ir_return_val_instructions[ir_return_val_instruction_count - 1];
         switch (last_instruction->type)
         {
+        case IR_INSTR_LABEL:
+        {
+            ir_instruction_t *copy_result = ir_return_val_instructions[ir_return_val_instruction_count - 2];
+            ir_return_instruction->instruction.return_instr = (ir_instruction_return_t){
+                .value = copy_result->instruction.copy_instr.destination,
+            };
+            break;
+        }
         case IR_INSTR_BINARY:
         {
             ir_return_instruction->instruction.return_instr = (ir_instruction_return_t){
-                last_instruction->instruction.binary_instr.destination,
+                .value = last_instruction->instruction.binary_instr.destination,
             };
             break;
         }

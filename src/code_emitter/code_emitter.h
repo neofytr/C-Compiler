@@ -510,6 +510,279 @@ bool emit_stack_allocation(asm_instruction_t *instruction, FILE *output_file)
     return true;
 }
 
+bool emit_jmp_instruction(asm_instruction_t *instruction, FILE *output_file)
+{
+    if (!instruction)
+    {
+        fprintf(stderr, "Error: NULL instruction in emit_jmp_instruction\n");
+        return false;
+    }
+
+    if (!output_file)
+    {
+        fprintf(stderr, "Error: NULL output file in emit_jmp_instruction\n");
+        return false;
+    }
+
+    if (fprintf(output_file, "    jmp %s\n", instruction->instr.jmp.target->name) < 0)
+    {
+        fprintf(stderr, "Error writing unconditional jump instructions\n");
+        return false;
+    }
+
+    return true;
+}
+
+bool emit_jmpcc_instruction(asm_instruction_t *instruction, FILE *output_file)
+{
+    if (!instruction)
+    {
+        fprintf(stderr, "Error: NULL instruction in emit_jmpcc_instruction\n");
+        return false;
+    }
+
+    if (!output_file)
+    {
+        fprintf(stderr, "Error: NULL output file in emit_jmpcc_instruction\n");
+        return false;
+    }
+
+    switch (instruction->instr.jmpcc.condition)
+    {
+    case COND_E:
+    {
+        if (fprintf(output_file, "    je %s\n", instruction->instr.jmpcc.target->name) < 0)
+        {
+            fprintf(stderr, "Error writing unconditional jump instructions\n");
+            return false;
+        }
+        break;
+    }
+    case COND_NE:
+    {
+
+        if (fprintf(output_file, "    jne %s\n", instruction->instr.jmpcc.target->name) < 0)
+        {
+            fprintf(stderr, "Error writing unconditional jump instructions\n");
+            return false;
+        }
+        break;
+    }
+    case COND_G:
+    {
+        if (fprintf(output_file, "    jg %s\n", instruction->instr.jmpcc.target->name) < 0)
+        {
+            fprintf(stderr, "Error writing unconditional jump instructions\n");
+            return false;
+        }
+        break;
+    }
+    case COND_GE:
+    {
+        if (fprintf(output_file, "    jge %s\n", instruction->instr.jmpcc.target->name) < 0)
+        {
+            fprintf(stderr, "Error writing unconditional jump instructions\n");
+            return false;
+        }
+        break;
+    }
+    case COND_L:
+    {
+        if (fprintf(output_file, "    jl %s\n", instruction->instr.jmpcc.target->name) < 0)
+        {
+            fprintf(stderr, "Error writing unconditional jump instructions\n");
+            return false;
+        }
+        break;
+    }
+    case COND_LE:
+    {
+        if (fprintf(output_file, "    jle %s\n", instruction->instr.jmpcc.target->name) < 0)
+        {
+            fprintf(stderr, "Error writing unconditional jump instructions\n");
+            return false;
+        }
+        break;
+    }
+    default:
+    {
+
+        return false;
+    }
+    }
+
+    return true;
+}
+
+bool emit_cmp_instruction(asm_instruction_t *instruction, FILE *output_file)
+{
+    if (!instruction || !output_file)
+    {
+        fprintf(stderr, "Error: NULL instruction or output file in emit_cmp_instruction\n");
+        return false;
+    }
+
+    asm_instruction_cmp_t *cmp_instruction = &instruction->instr.cmp;
+    if (!cmp_instruction->first_operand || !cmp_instruction->second_operand)
+    {
+        fprintf(stderr, "Error: Incomplete compare instruction\n");
+        return false;
+    }
+
+    asm_operand_t *first_operand = cmp_instruction->first_operand;
+    asm_operand_t *second_operand = cmp_instruction->second_operand;
+
+    const char *first_str = NULL;
+    const char *second_str = NULL;
+    char first_buf[32];
+    char second_buf[32];
+
+    switch (first_operand->type)
+    {
+    case OPERAND_REGISTER:
+        first_str = map_register_name(first_operand->operand.reg.reg_no);
+        break;
+    case OPERAND_PSEUDO:
+        first_str = first_operand->operand.pseudo.pseudo_name;
+        break;
+    case OPERAND_STACK:
+        snprintf(first_buf, sizeof(first_buf), "[rbp-%d]", -first_operand->operand.stack.offset);
+        first_str = first_buf;
+        break;
+    case OPERAND_IMMEDIATE:
+        snprintf(first_buf, sizeof(first_buf), "%d", first_operand->operand.immediate.value);
+        first_str = first_buf;
+        break;
+    }
+
+    switch (second_operand->type)
+    {
+    case OPERAND_REGISTER:
+        second_str = map_register_name(second_operand->operand.reg.reg_no);
+        break;
+    case OPERAND_PSEUDO:
+        second_str = second_operand->operand.pseudo.pseudo_name;
+        break;
+    case OPERAND_STACK:
+        snprintf(second_buf, sizeof(second_buf), "[rbp-%d]", -second_operand->operand.stack.offset);
+        second_str = second_buf;
+        break;
+    case OPERAND_IMMEDIATE:
+        snprintf(second_buf, sizeof(second_buf), "%d", second_operand->operand.immediate.value);
+        second_str = second_buf;
+        break;
+    }
+
+    if (first_operand->type == OPERAND_STACK)
+    {
+        if (fprintf(output_file, "    cmp qword %s, %s\n", first_str, second_str) < 0)
+        {
+            fprintf(stderr, "Error writing compare instruction\n");
+            return false;
+        }
+    }
+    else
+    {
+        if (fprintf(output_file, "    cmp %s, %s\n", first_str, second_str) < 0)
+        {
+            fprintf(stderr, "Error writing compare instruction\n");
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool emit_setcc_instruction(asm_instruction_t *instruction, FILE *output_file)
+{
+    if (!instruction || !output_file)
+    {
+        fprintf(stderr, "Error: NULL instruction or output file in emit_setcc_instruction\n");
+        return false;
+    }
+
+    asm_instruction_setcc_t *setcc_instruction = &instruction->instr.setcc;
+    if (!setcc_instruction->condition || !setcc_instruction->dst)
+    {
+        fprintf(stderr, "Error: Incomplete setcc instruction\n");
+        return false;
+    }
+
+    const char *condition_str = NULL;
+    switch (setcc_instruction->condition)
+    {
+    case COND_E:
+        condition_str = "e";
+        break;
+    case COND_NE:
+        condition_str = "ne";
+        break;
+    case COND_L:
+        condition_str = "l";
+        break;
+    case COND_LE:
+        condition_str = "le";
+        break;
+    case COND_G:
+        condition_str = "g";
+        break;
+    case COND_GE:
+        condition_str = "ge";
+        break;
+    default:
+        fprintf(stderr, "Error: Unsupported condition type\n");
+        return false;
+    }
+
+    asm_operand_t *dest_operand = setcc_instruction->dst;
+    const char *dest_str = NULL;
+    char dest_buf[32];
+
+    switch (dest_operand->type)
+    {
+    case OPERAND_REGISTER:
+        dest_str = map_register_name(dest_operand->operand.reg.reg_no);
+        break;
+    case OPERAND_PSEUDO:
+        dest_str = dest_operand->operand.pseudo.pseudo_name;
+        break;
+    case OPERAND_STACK:
+        snprintf(dest_buf, sizeof(dest_buf), "byte [rbp-%d]", -dest_operand->operand.stack.offset);
+        dest_str = dest_buf;
+        break;
+    case OPERAND_IMMEDIATE:
+        fprintf(stderr, "Error: Invalid immediate destination for setcc\n");
+        return false;
+    }
+
+    if (fprintf(output_file, "    set%s %s\n", condition_str, dest_str) < 0)
+    {
+        fprintf(stderr, "Error writing setcc instruction\n");
+        return false;
+    }
+
+    return true;
+}
+
+bool emit_label_instruction(asm_instruction_t *instruction, FILE *output_file)
+{
+    if (!instruction || !output_file)
+    {
+        fprintf(stderr, "Error: NULL instruction or output file in emit_setcc_instruction\n");
+        return false;
+    }
+
+    asm_instruction_label_t label = instruction->instr.label;
+
+    if (fprintf(output_file, "%s:\n", label.label->name) < 0)
+    {
+        fprintf(stderr, "Error writing label instruction\n");
+        return false;
+    }
+
+    return true;
+}
+
 bool emit_asm_instruction(asm_instruction_t *instruction, FILE *output_file)
 {
     if (!instruction)
@@ -540,9 +813,18 @@ bool emit_asm_instruction(asm_instruction_t *instruction, FILE *output_file)
         return emit_idiv_instruction(instruction, output_file);
     case INSTRUCTION_BINARY:
         return emit_binary_instruction(instruction, output_file);
+    case INSTRUCTION_JMP:
+        return emit_jmp_instruction(instruction, output_file);
+    case INSTRUCTION_JMPCC:
+        return emit_jmpcc_instruction(instruction, output_file);
+    case INSTRUCTION_CMP:
+        return emit_cmp_instruction(instruction, output_file);
+    case INSTRUCTION_SETCC:
+        return emit_setcc_instruction(instruction, output_file);
+    case INSTRUCTION_LABEL:
+        return emit_label_instruction(instruction, output_file);
     default:
         fprintf(stderr, "Error: Unsupported instruction type\n");
-        return false;
     }
 }
 

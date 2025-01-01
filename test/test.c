@@ -1,4 +1,4 @@
 int main(void)
 {
-    return 12 * -7;
+    return 1 && 2;
 }
