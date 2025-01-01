@@ -174,6 +174,35 @@ If it's operand is a memory address, a conditional set instruction will update t
 
 # Jump instructions
 
+The `jmp` assembly instruction takes a label as an argument and performs an unconditional jump to that label. Jump assembly instructions manipulate another special-purpose register, RIP, which always holds the memory address of the next instruction to execute (IP stands for *instruction pointer*). To execute a sequence of instructions, the CPU carries out the *fetch-execute cycle*:
 
+1. Fetch an instruction from the memory address in RIP and store it in a special-purpose *instruction register*. (This register doesn't have a name since we can't access it in assembly.)
+2. Increment RIP to point to the next instruction. Instructions in x64 aren't all the same length, so the CPU has to check the length of the instruction it just fetched and increment RIP by that many bytes.
+3. Run the instruction in the instruction register.
+4. Repeat.
+
+Normally, instructions are executed sequentially in the order they appear in memory. However, the `jmp` instruction modifies the RIP (Instruction Pointer) register, changing the address of the next instruction to execute. The assembler and linker convert the label in the `jmp` instruction into a *signed 32-bit relative offset*, relative to the current value of RIP at the time of execution. This offset indicates how much to increment or decrement RIP, a technique known as a RIP-relative jump. The relative offset is limited to a range of ±2 GB from the current value of RIP. In Position-Independent Code (PIC), if the target address of the jump exceeds this ±2 GB range, a Procedure Linkage Table (PLT) and Global Offset Table (GOT) approach is used. In this case, the label is resolved to a PLT entry, which will be within the ±2 GB range, ensuring that the jump is valid even for distant addresses.
+
+Consider the snippet of assembly:
+
+```asm
+    add eax, 1
+    jmp foo
+    mov eax, 0
+
+foo:
+    ret
+```
+
+The machine instruction for `mov eax, 0` is 5 bytes long. To jump over it and execute the `ret` instruction instead, `jmp` needs to increment RIP by an extra 5 bytes. The assembler and linker therefore convert `jmp foo` into the machine instruction for `jmp rip+5`. Then, when the CPU executes this instruction, it:
+
+1. Fetches the instruction `jmp rip+5` and stored it in the instruction register.
+2. Increments RIP to point to the next instruction, `mov eax, 0`
+3. Executes the jump instruction. This adds 5 bytes to the RIP so that it point to `ret`.
+4. Fetches the instruction RIP points to, `ret`, and continues the fetch-execute cycle from there.
+
+Note that labels aren't instructions: the CPU doesn't execute them, and they don't appear in the text section of the final executable (the section that contains the machine instructions).
+
+A *conditional jump* takes a label as an argument but jumps to that label only if the condition holds. Conditional jumps look a lot like conditional set instructions; they depend on the same conditions, using the same flags in RFLAGS.
 
 
