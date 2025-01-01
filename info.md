@@ -172,4 +172,8 @@ Unlike the other instructions we saw before, conditional set instructions take o
 
 If it's operand is a memory address, a conditional set instruction will update the single byte at that address. Note that a memory address can be 1-byte, 4-byte, or 8-byte operand, depending on the context if it's clear through the context which size we are referring to; or otherwise through use of memory size specifiers in front of the memory operand (like word, qword, byte etc).
 
+# Jump instructions
+
+
+
 

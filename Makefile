@@ -1,39 +1,43 @@
 # Compiler and flags
 CC = gcc
-CFLAGS = -Wall -Wextra -O0 -g3 -I./src
+CFLAGS = -Wall -Wextra
 
 # Directories
 SRC_DIR = src
-BIN_DIR = bin
+TEST_DIR = neocc/testing
+PROD_DIR = neocc/production
 
-# Output binary
-TARGET = $(BIN_DIR)/neocc
-
-# Source files
+# Source and output
 SRCS = $(SRC_DIR)/compiler.c
+TEST_TARGET = $(TEST_DIR)/neocc_test
+PROD_TARGET = $(PROD_DIR)/neocc_prod
 
-# Object files (place in src directory)
-OBJS = $(SRCS:.c=.o)
+# Build rules
+all: test production
 
-# Default target
-all: $(TARGET)
+# Ensure the testing directory exists
+$(TEST_DIR):
+	mkdir -p $(TEST_DIR)
 
-# Create binary directory if it doesn't exist
-$(BIN_DIR):
-	mkdir -p $(BIN_DIR)
+# Ensure the production directory exists
+$(PROD_DIR):
+	mkdir -p $(PROD_DIR)
 
-# Build the binary
-$(TARGET): $(OBJS) | $(BIN_DIR)
-	$(CC) $(CFLAGS) -o $@ $(OBJS)
-	rm $(SRC_DIR)/compiler.o
+# Build the testing binary
+test: $(TEST_TARGET)
 
-# Compile source files to object files
-%.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
+$(TEST_TARGET): $(SRCS) | $(TEST_DIR)
+	$(CC) $(CFLAGS) -O0 -g3 -o $@ $<
+
+# Build the production binary
+production: $(PROD_TARGET)
+
+$(PROD_TARGET): $(SRCS) | $(PROD_DIR)
+	$(CC) $(CFLAGS) -O3 -march=native -flto -o $@ $<
 
 # Clean build artifacts
 clean:
-	rm -f $(OBJS) $(TARGET)
+	rm -f $(TEST_TARGET) $(PROD_TARGET)
 
 # Phony targets
-.PHONY: all clean
+.PHONY: all test production clean
