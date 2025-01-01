@@ -36,6 +36,86 @@ asm_instruction_struct_t handle_ir_instruction(ir_instruction_t *ir_instruction)
     ir_instruction_type_t ir_instruction_type = ir_instruction->type;
     switch (ir_instruction_type)
     {
+    case IR_INSTR_COPY:
+    {
+        asm_instruction_t *asm_instruction_mov = (asm_instruction_t *)allocate(sizeof(asm_instruction_t));
+        if (!asm_instruction_mov)
+        {
+            return NULL_INSTRUCTION_STRUCT_ASM;
+        }
+
+        asm_instruction_mov->base.type = ASM_NODE_INSTRUCTION;
+        asm_instruction_mov->type = INSTRUCTION_MOV;
+
+        asm_operand_t *asm_src = (asm_operand_t *)allocate(sizeof(asm_operand_t));
+        asm_operand_t *asm_dest = (asm_operand_t *)allocate(sizeof(asm_operand_t));
+
+        if (!asm_src || !asm_dest)
+        {
+            return NULL_INSTRUCTION_STRUCT_ASM;
+        }
+
+        asm_src->base.parent = &asm_instruction_mov->base;
+        asm_src->base.type = ASM_NODE_OPERAND;
+        asm_dest->base.parent = &asm_instruction_mov->base;
+        asm_dest->base.type = ASM_NODE_OPERAND;
+
+        ir_instruction_copy_t ir_instruction_copy = ir_instruction->instruction.copy_instr;
+        ir_value_t *copy_src = ir_instruction_copy.source;
+        ir_value_t *copy_dest = ir_instruction_copy.destination;
+
+        switch (copy_src->type)
+        {
+        case IR_VAL_CONSTANT_INT:
+        {
+            asm_src->type = OPERAND_IMMEDIATE;
+            asm_src->operand.immediate.value = copy_src->value.constant_int;
+            break;
+        }
+        case IR_VAL_VARIABLE:
+        {
+            asm_src->type = OPERAND_PSEUDO;
+            asm_src->operand.pseudo.pseudo_name = copy_src->value.variable.identifier;
+            break;
+        }
+        }
+
+        switch (copy_dest->type)
+        {
+        case IR_VAL_CONSTANT_INT:
+        {
+            asm_dest->type = OPERAND_IMMEDIATE;
+            asm_dest->operand.immediate.value = copy_dest->value.constant_int;
+            break;
+        }
+        case IR_VAL_VARIABLE:
+        {
+            asm_dest->type = OPERAND_PSEUDO;
+            asm_dest->operand.pseudo.pseudo_name = copy_dest->value.variable.identifier;
+            break;
+        }
+        }
+
+        asm_instruction_mov->instr.mov.dst = asm_dest;
+        asm_instruction_mov->instr.mov.src = asm_src;
+
+        asm_instruction_t **asm_instructions = (asm_instruction_t **)allocate(sizeof(asm_instruction_t *) * 2);
+        if (!asm_instructions)
+        {
+            return NULL_INSTRUCTION_STRUCT_ASM;
+        }
+        size_t asm_instruction_count = 1;
+
+        asm_instructions[0] = asm_instruction_mov;
+
+        asm_instruction_struct_t asm_instructions_struct = (asm_instruction_struct_t){
+            .instructions = asm_instructions,
+            .instruction_count = asm_instruction_count,
+        };
+
+        return asm_instructions_struct;
+        break;
+    }
     case IR_INSTR_JUMP:
     {
         asm_instruction_t *asm_instruction_jmp = (asm_instruction_t *)allocate(sizeof(asm_instruction_t));
