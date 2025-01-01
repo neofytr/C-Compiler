@@ -44,14 +44,50 @@ The following summarizes the cases where each kind of signed integer overflow/un
 
 For addition (a + b):
 
-| a value | b > 0 | b < 0 |
-|---------|--------|--------|
-| a > 0 | Overflow from positive to negative | Neither |
-| a < 0 | Neither | Overflow from negative to positive |
+| a value | b > 0                              | b < 0                              |
+| ------- | ---------------------------------- | ---------------------------------- |
+| a > 0   | Overflow from positive to negative | Neither                            |
+| a < 0   | Neither                            | Overflow from negative to positive |
 
 For subtraction (a - b):
 
-| a value | b > 0 | b < 0 |
-|---------|--------|--------|
-| a > 0 | Neither | Overflow from positive to negative |
-| a < 0 | Overflow from negative to positive | Neither |
+| a value | b > 0                              | b < 0                              |
+| ------- | ---------------------------------- | ---------------------------------- |
+| a > 0   | Neither                            | Overflow from positive to negative |
+| a < 0   | Overflow from negative to positive | Neither                            |
+
+The instruction `cmp b, a` computes a - b, exactly like the `sub` instruction, and has the same impact on RFLAGS, but it discards the result instead of storing it in a. This is more convenient when we want to subtract two numbers only in order to compare then and don't want to overwrite a.
+
+Let's figure out the values of ZF and AF after the instruction `cmp b, a` for signed integers a and b:
+
+1. If a == b, then a - b is zero, so ZF is 1 and SF is 0.
+2. If a > b, then a - b is a positive number, so both SF and ZF are 0.
+3. If a < b, then a - b is a negative number, so SF is 1 and ZF is 0.
+
+By issuing a `cmp` instruction and then checking ZF and SF, we can handle any comparison we'll implement in this section. That's not quite true since a - b could result in an integer overflow (or underflow), which would flip SF. Let's consider how that impacts each case:
+
+1. If a == b, then a - b can't overflow because it's 0.
+2. If a > b, then a - b could overflow when a is positive and b is negative. The correct result in this case is positive, but if it overflows, the result will be negative. In that case, SF and OF will be 1.
+3. If a < b, then a - b could overflow when a is negative and b is positive. In this case, the correct result is negative, but if it underflows, the actual result will be positive. That means SF will be 0, but OF will be 1.
+
+The below table gives the values of these flags in every case we've considered:
+
+For signed integers a and b, impact of `cmp` instruction on status flags:
+
+|                    | ZF  | OF  | SF  |
+| ------------------ | --- | --- | --- |
+| a == b             | 1   | 0   | 0   |
+| a > b, no overflow | 0   | 0   | 0   |
+| a > b, overflow    | 0   | 1   | 1   |
+| a < b, no overflow | 0   | 0   | 1   |
+| a < b, overflow    | 0   | 1   | 0   |
+
+You can tell whether a or b is larger by checking whether SF and OF are the same. If they are, we know that a >= b. Either both (SF and OF) are zero, because we got a positive (or 0) result with no overflow, or both are 1, because we got a large positive result that overflowed until it became negative. a == b and a > b can then be demarcated by futher che If SF and OF are different, we know that a < b. Either we got a negative result with no underflow, or we got a negative result that underflowed and became positive.
+
+Thus for
+
+1. a == b: ZF = 1
+2. a > b: ZF = 0 and OF = SF
+3. a >= b: OF = SF
+4. a < b: ZF = 0 and OF != SF
+5. a <= b: OF != SF
