@@ -741,7 +741,27 @@ bool emit_setcc_instruction(asm_instruction_t *instruction, FILE *output_file)
     switch (dest_operand->type)
     {
     case OPERAND_REGISTER:
-        dest_str = map_register_name(dest_operand->operand.reg.reg_no);
+        switch (dest_operand->operand.reg.reg_no)
+        {
+        case ASM_REG_R10:
+            dest_str = "r10b";
+            break;
+        case ASM_REG_RAX:
+            dest_str = "ax";
+            break;
+        case ASM_REG_R11:
+            dest_str = "r11b";
+            break;
+        case ASM_REG_RDX:
+            dest_str = "dl";
+            break;
+        case ASM_REG_RCX:
+            dest_str = "cl";
+            break;
+        default:
+            fprintf(stderr, "Error: Unsupported register in map_register_name\n");
+            return false;
+        }
         break;
     case OPERAND_PSEUDO:
         dest_str = dest_operand->operand.pseudo.pseudo_name;

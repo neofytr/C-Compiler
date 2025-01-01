@@ -1,4 +1,4 @@
 int main(void)
 {
-    return 5 >= 10;
+    return 10 >= 3;
 }
