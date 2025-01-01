@@ -12,32 +12,37 @@ SRCS = $(SRC_DIR)/compiler.c
 TEST_TARGET = $(TEST_DIR)/neocc_test
 PROD_TARGET = $(PROD_DIR)/neocc_prod
 
+# Common flags for both targets
+COMMON_FLAGS = $(CFLAGS)
+
+# Debug-specific flags
+DEBUG_FLAGS = -O0 -g3 -DDEBUG
+
+# Production-specific flags
+PROD_FLAGS = -O3 -march=native -flto -DNDEBUG
+
 # Build rules
 all: test production
 
-# Ensure the testing directory exists
-$(TEST_DIR):
-	mkdir -p $(TEST_DIR)
-
-# Ensure the production directory exists
-$(PROD_DIR):
-	mkdir -p $(PROD_DIR)
+# Create directories if they don't exist
+$(TEST_DIR) $(PROD_DIR):
+	mkdir -p $@
 
 # Build the testing binary
 test: $(TEST_TARGET)
 
 $(TEST_TARGET): $(SRCS) | $(TEST_DIR)
-	$(CC) $(CFLAGS) -O0 -g3 -o $@ $<
+	$(CC) $(COMMON_FLAGS) $(DEBUG_FLAGS) -o $@ $<
 
 # Build the production binary
 production: $(PROD_TARGET)
 
 $(PROD_TARGET): $(SRCS) | $(PROD_DIR)
-	$(CC) $(CFLAGS) -O3 -march=native -flto -o $@ $<
+	$(CC) $(COMMON_FLAGS) $(PROD_FLAGS) -o $@ $<
 
 # Clean build artifacts
 clean:
-	rm -f $(TEST_TARGET) $(PROD_TARGET)
+	rm -rf $(TEST_DIR) $(PROD_DIR)
 
 # Phony targets
 .PHONY: all test production clean
