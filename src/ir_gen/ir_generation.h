@@ -579,7 +579,7 @@ ir_instruction_struct_t ir_handle_expression(expression_t *source_expression)
 
             true_label->base.parent = &jnz_instruction->base;
             true_label->base.type = IR_NODE_IDENTIFIER;
-            true_label->name = new_true_label_name();
+            true_label->name = new_false_label_name();
             if (!true_label->name)
             {
                 deallocate(true_label);
