@@ -51,7 +51,14 @@ bool asm_fix_instruction(asm_program_t *asm_program)
                 mov_instruction->base.type = ASM_NODE_INSTRUCTION;
                 mov_instruction->base.parent = instruction->base.parent;
                 mov_instruction->type = INSTRUCTION_MOV;
-                mov_instruction->instr.mov.src = cmp->first_operand;
+
+                asm_operand_t *mov_src = (asm_operand_t *)allocate(sizeof(asm_operand_t));
+                if (!mov_src)
+                    return false;
+
+                *mov_src = *cmp->first_operand;
+                mov_src->base.parent = &mov_instruction->base;
+                mov_instruction->instr.mov.src = mov_src;
                 mov_instruction->instr.mov.dst = r11_operand;
 
                 asm_operand_t *r11_cmp_operand = (asm_operand_t *)allocate(sizeof(asm_operand_t));
@@ -59,6 +66,7 @@ bool asm_fix_instruction(asm_program_t *asm_program)
                     return false;
 
                 *r11_cmp_operand = *r11_operand;
+                r11_cmp_operand->base.parent = &instruction->base;
                 cmp->first_operand = r11_cmp_operand;
 
                 asm_instruction_t **new_instructions = (asm_instruction_t **)allocate(
@@ -101,7 +109,15 @@ bool asm_fix_instruction(asm_program_t *asm_program)
                 mov_instruction->base.type = ASM_NODE_INSTRUCTION;
                 mov_instruction->base.parent = instruction->base.parent;
                 mov_instruction->type = INSTRUCTION_MOV;
-                mov_instruction->instr.mov.src = cmp->second_operand;
+
+                asm_operand_t *mov_src = (asm_operand_t *)allocate(sizeof(asm_operand_t));
+                if (!mov_src)
+                    return false;
+
+                mov_src->type = OPERAND_STACK;
+                mov_src->operand.stack.offset = cmp->second_operand->operand.stack.offset;
+                mov_src->base.parent = &mov_instruction->base;
+                mov_instruction->instr.mov.src = mov_src;
                 mov_instruction->instr.mov.dst = r11_operand;
 
                 asm_operand_t *r11_cmp_operand = (asm_operand_t *)allocate(sizeof(asm_operand_t));
@@ -109,6 +125,7 @@ bool asm_fix_instruction(asm_program_t *asm_program)
                     return false;
 
                 *r11_cmp_operand = *r11_operand;
+                r11_cmp_operand->base.parent = &instruction->base;
                 cmp->second_operand = r11_cmp_operand;
 
                 asm_instruction_t **new_instructions = (asm_instruction_t **)allocate(

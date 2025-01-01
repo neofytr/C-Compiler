@@ -1,4 +1,4 @@
 int main(void)
 {
-    return 1 && 2;
+    return 16 && 4 || 0;
 }

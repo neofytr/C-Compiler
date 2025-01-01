@@ -1,13 +1,13 @@
 section .text
-global _start
-_start:
+global main
+main:
     push rbp
     mov rbp, rsp
-    sub rsp, 4
-    mov r11, 1
+    sub rsp, 8
+    mov r11, 16
     cmp r11, 0
     je _false0
-    mov r11, 2
+    mov r11, 4
     cmp r11, 0
     je _false0
     mov qword [rbp-4], 1
@@ -15,10 +15,17 @@ _start:
 _false0:
     mov qword [rbp-4], 0
 _end0:
-    mov rax, [rbp-4]
+    cmp qword [rbp-4], 0
+    jne _false1
+    mov r11, 0
+    cmp r11, 0
+    jne _false1
+    mov qword [rbp-8], 0
+    jmp _end1
+_false1:
+    mov qword [rbp-8], 1
+_end1:
+    mov rax, [rbp-8]
     mov rsp, rbp
     pop rbp
-
-    mov rdi, rax
-    mov rax, 60
-    syscall
+    ret

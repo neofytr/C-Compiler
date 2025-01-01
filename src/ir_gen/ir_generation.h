@@ -265,6 +265,12 @@ ir_instruction_struct_t ir_handle_expression(expression_t *source_expression)
             ir_instruction_t *last_instruction = ir_left_instruction_struct.instructions[ir_left_instruction_struct.instruction_count - 1];
             switch (last_instruction->type)
             {
+            case IR_INSTR_LABEL:
+            {
+                ir_instruction_t *copy_result = ir_left_instruction_struct.instructions[ir_left_instruction_struct.instruction_count - 2];
+                ir_left_value->value.variable.identifier = copy_result->instruction.copy_instr.destination->value.variable.identifier;
+                break;
+            }
             case IR_INSTR_BINARY:
                 ir_left_value->value.variable.identifier =
                     last_instruction->instruction.binary_instr.destination->value.variable.identifier;
@@ -293,6 +299,12 @@ ir_instruction_struct_t ir_handle_expression(expression_t *source_expression)
             ir_instruction_t *last_instruction = ir_right_instruction_struct.instructions[ir_right_instruction_struct.instruction_count - 1];
             switch (last_instruction->type)
             {
+            case IR_INSTR_LABEL:
+            {
+                ir_instruction_t *copy_result = ir_right_instruction_struct.instructions[ir_right_instruction_struct.instruction_count - 2];
+                ir_right_value->value.variable.identifier = copy_result->instruction.copy_instr.destination->value.variable.identifier;
+                break;
+            }
             case IR_INSTR_BINARY:
                 ir_right_value->value.variable.identifier =
                     last_instruction->instruction.binary_instr.destination->value.variable.identifier;
@@ -457,7 +469,7 @@ ir_instruction_struct_t ir_handle_expression(expression_t *source_expression)
             }
             first_jz_target->base.type = IR_NODE_IDENTIFIER;
             first_jz_target->base.parent = &first_jz_instruction->base;
-            first_jz_target->name = strdup(false_label->name); // Assuming strdup is available
+            first_jz_target->name = strdup(false_label->name);
             if (!first_jz_target->name)
             {
                 deallocate(result_var);

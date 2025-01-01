@@ -198,7 +198,6 @@ asm_instruction_struct_t handle_ir_instruction(ir_instruction_t *ir_instruction)
     }
     case IR_INSTR_JUMP_IF_ZERO:
     {
-
         asm_instruction_t *asm_instruction_cmp = (asm_instruction_t *)allocate(sizeof(asm_instruction_t));
         if (!asm_instruction_cmp)
         {
@@ -991,7 +990,7 @@ asm_instruction_struct_t handle_ir_instruction(ir_instruction_t *ir_instruction)
             {
             case IR_VAL_CONSTANT_INT:
                 cmp_first->type = OPERAND_IMMEDIATE;
-                cmp_second->operand.immediate.value = ir_instruction_binary.left->value.constant_int;
+                cmp_first->operand.immediate.value = ir_instruction_binary.left->value.constant_int;
                 break;
             case IR_VAL_VARIABLE:
                 cmp_first->type = OPERAND_PSEUDO;
