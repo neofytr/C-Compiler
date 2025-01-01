@@ -393,7 +393,7 @@ ir_instruction_struct_t ir_handle_expression(expression_t *source_expression)
         if (ir_binary_operator->operator== IR_BINARY_LOGICAL_AND)
         {
             total_instruction_count = ir_left_instruction_struct.instruction_count +
-                                      ir_right_instruction_struct.instruction_count + 5;
+                                      ir_right_instruction_struct.instruction_count + 7;
         }
         else
         {
@@ -460,16 +460,13 @@ ir_instruction_struct_t ir_handle_expression(expression_t *source_expression)
             jmp_instruction->instruction.jz_instr.target = destination;
 
             combined_instructions[current_index++] = jmp_instruction;
-        }
 
-        for (size_t i = 0; i < ir_right_instruction_struct.instruction_count; i++)
-        {
-            combined_instructions[current_index++] =
-                ir_right_instruction_struct.instructions[i];
-        }
+            for (size_t i = 0; i < ir_right_instruction_struct.instruction_count; i++)
+            {
+                combined_instructions[current_index++] =
+                    ir_right_instruction_struct.instructions[i];
+            }
 
-        if (ir_binary_operator->operator== IR_BINARY_LOGICAL_AND)
-        {
             ir_instruction_t *jmp_instruction = (ir_instruction_t *)allocate(sizeof(ir_instruction_t));
             if (!jmp_instruction)
             {
@@ -517,6 +514,37 @@ ir_instruction_struct_t ir_handle_expression(expression_t *source_expression)
 
             combined_instructions[current_index++] = jmp_instruction;
 
+            ir_instruction_t *copy_one = (ir_instruction_t *)allocate(sizeof(ir_instruction_t));
+            if (!copy_one)
+            {
+                return (ir_instruction_struct_t){.instructions = NULL, .instruction_count = 0};
+            }
+
+            copy_one->type = IR_INSTR_COPY;
+            ir_value_t *copy_dest = (ir_value_t *)allocate(sizeof(ir_value_t));
+            ir_value_t *copy_src = (ir_value_t *)allocate(sizeof(ir_value_t));
+
+            if (!copy_dest || !copy_one)
+            {
+                return (ir_instruction_struct_t){.instructions = NULL, .instruction_count = 0};
+            }
+
+            copy_dest->type = IR_VAL_VARIABLE;
+            copy_dest->base.parent = &copy_one->base;
+
+            copy_src->type = IR_VAL_CONSTANT_INT;
+            copy_src->base.parent = &copy_one->base;
+
+            copy_dest->value.variable.identifier = new_temp_var_name();
+            if (!copy_dest->value.variable.identifier)
+            {
+                return (ir_instruction_struct_t){.instructions = NULL, .instruction_count = 0};
+            }
+
+            copy_src->value.constant_int = 1;
+
+            combined_instructions[current_index++] = copy_one;
+
             ir_instruction_t *unconditional_jmp = (ir_instruction_t *)allocate(sizeof(ir_instruction_t));
             if (!unconditional_jmp)
             {
@@ -555,7 +583,7 @@ ir_instruction_struct_t ir_handle_expression(expression_t *source_expression)
             label_iden->base.parent = &label->base;
             label_iden->base.type = IR_NODE_IDENTIFIER;
 
-            label_iden->name = combined_instructions[current_index - 2]->instruction.jz_instr.target->name;
+            label_iden->name = combined_instructions[current_index - 3]->instruction.jz_instr.target->name;
             label->instruction.label_instr.identifier = label_iden;
 
             combined_instructions[current_index++] = label;
@@ -577,14 +605,221 @@ ir_instruction_struct_t ir_handle_expression(expression_t *source_expression)
             label_iden_end->base.parent = &label_end->base;
             label_iden_end->base.type = IR_NODE_IDENTIFIER;
 
-            label_iden_end->name = combined_instructions[current_index - 2]->instruction.jmp_instr.target->name;
+            label_iden_end->name = combined_instructions[current_index - 3]->instruction.jmp_instr.target->name;
             label_end->instruction.label_instr.identifier = label_iden_end;
 
             combined_instructions[current_index++] = label_end;
         }
-
-        if (ir_binary_operator->operator== IR_INSTR_BINARY)
+        else if (ir_binary_operator->operator== IR_BINARY_LOGICAL_OR)
         {
+            ir_instruction_t *jnz_instruction = (ir_instruction_t *)allocate(sizeof(ir_instruction_t));
+            if (!jnz_instruction)
+            {
+                return (ir_instruction_struct_t){.instructions = NULL, .instruction_count = 0};
+            }
+
+            ir_value_t *condition = (ir_value_t *)allocate(sizeof(ir_value_t));
+            if (!condition)
+            {
+                deallocate(jnz_instruction);
+                return (ir_instruction_struct_t){.instructions = NULL, .instruction_count = 0};
+            }
+
+            condition->base.parent = &jnz_instruction->base;
+            condition->base.type = IR_NODE_INSTRUCTION;
+
+            jnz_instruction->type = IR_INSTR_JUMP_IF_NOT_ZERO;
+
+            if (ir_left_value->type == IR_VAL_CONSTANT_INT)
+            {
+                condition->type = IR_VAL_CONSTANT_INT;
+                condition->value.constant_int = ir_left_value->value.constant_int;
+            }
+            else if (ir_left_value->type == IR_VAL_VARIABLE)
+            {
+                condition->type = IR_VAL_VARIABLE;
+                condition->value.variable.identifier = ir_left_value->value.variable.identifier;
+            }
+
+            ir_identifier_t *true_label = (ir_identifier_t *)allocate(sizeof(ir_identifier_t));
+            if (!true_label)
+            {
+                deallocate(condition);
+                deallocate(jnz_instruction);
+                return (ir_instruction_struct_t){.instructions = NULL, .instruction_count = 0};
+            }
+
+            true_label->base.parent = &jnz_instruction->base;
+            true_label->base.type = IR_NODE_IDENTIFIER;
+            true_label->name = new_true_label_name();
+            if (!true_label->name)
+            {
+                deallocate(true_label);
+                deallocate(condition);
+                deallocate(jnz_instruction);
+                return (ir_instruction_struct_t){.instructions = NULL, .instruction_count = 0};
+            }
+
+            jnz_instruction->instruction.jnz_instr.condition = condition;
+            jnz_instruction->instruction.jnz_instr.target = true_label;
+
+            combined_instructions[current_index++] = jnz_instruction;
+
+            for (size_t i = 0; i < ir_right_instruction_struct.instruction_count; i++)
+            {
+                combined_instructions[current_index++] = ir_right_instruction_struct.instructions[i];
+            }
+
+            ir_instruction_t *jnz_instruction2 = (ir_instruction_t *)allocate(sizeof(ir_instruction_t));
+            if (!jnz_instruction2)
+            {
+                return (ir_instruction_struct_t){.instructions = NULL, .instruction_count = 0};
+            }
+
+            ir_value_t *condition2 = (ir_value_t *)allocate(sizeof(ir_value_t));
+            if (!condition2)
+            {
+                deallocate(jnz_instruction2);
+                return (ir_instruction_struct_t){.instructions = NULL, .instruction_count = 0};
+            }
+
+            condition2->base.parent = &jnz_instruction2->base;
+            condition2->base.type = IR_NODE_INSTRUCTION;
+            jnz_instruction2->type = IR_INSTR_JUMP_IF_NOT_ZERO;
+
+            if (ir_right_value->type == IR_VAL_CONSTANT_INT)
+            {
+                condition2->type = IR_VAL_CONSTANT_INT;
+                condition2->value.constant_int = ir_right_value->value.constant_int;
+            }
+            else if (ir_right_value->type == IR_VAL_VARIABLE)
+            {
+                condition2->type = IR_VAL_VARIABLE;
+                condition2->value.variable.identifier = ir_right_value->value.variable.identifier;
+            }
+
+            jnz_instruction2->instruction.jnz_instr.condition = condition2;
+            jnz_instruction2->instruction.jnz_instr.target = true_label;
+
+            combined_instructions[current_index++] = jnz_instruction2;
+
+            ir_instruction_t *copy_zero = (ir_instruction_t *)allocate(sizeof(ir_instruction_t));
+            if (!copy_zero)
+            {
+                return (ir_instruction_struct_t){.instructions = NULL, .instruction_count = 0};
+            }
+
+            copy_zero->type = IR_INSTR_COPY;
+            ir_value_t *copy_dest = (ir_value_t *)allocate(sizeof(ir_value_t));
+            ir_value_t *copy_src = (ir_value_t *)allocate(sizeof(ir_value_t));
+
+            if (!copy_dest || !copy_src)
+            {
+                deallocate(copy_zero);
+                if (copy_dest)
+                    deallocate(copy_dest);
+                if (copy_src)
+                    deallocate(copy_src);
+                return (ir_instruction_struct_t){.instructions = NULL, .instruction_count = 0};
+            }
+
+            copy_dest->type = IR_VAL_VARIABLE;
+            copy_dest->base.parent = &copy_zero->base;
+            copy_src->type = IR_VAL_CONSTANT_INT;
+            copy_src->base.parent = &copy_zero->base;
+
+            copy_dest->value.variable.identifier = ir_destination_value->value.variable.identifier;
+            copy_src->value.constant_int = 0;
+
+            copy_zero->instruction.copy_instr.source = copy_src;
+            copy_zero->instruction.copy_instr.destination = copy_dest;
+
+            combined_instructions[current_index++] = copy_zero;
+
+            ir_instruction_t *jmp_end = (ir_instruction_t *)allocate(sizeof(ir_instruction_t));
+            if (!jmp_end)
+            {
+                return (ir_instruction_struct_t){.instructions = NULL, .instruction_count = 0};
+            }
+
+            ir_identifier_t *end_label = (ir_identifier_t *)allocate(sizeof(ir_identifier_t));
+            if (!end_label)
+            {
+                deallocate(jmp_end);
+                return (ir_instruction_struct_t){.instructions = NULL, .instruction_count = 0};
+            }
+
+            end_label->base.parent = &jmp_end->base;
+            end_label->base.type = IR_NODE_IDENTIFIER;
+            end_label->name = new_end_label_name();
+
+            jmp_end->type = IR_INSTR_JUMP;
+            jmp_end->instruction.jmp_instr.target = end_label;
+
+            combined_instructions[current_index++] = jmp_end;
+
+            ir_instruction_t *true_label_instr = (ir_instruction_t *)allocate(sizeof(ir_instruction_t));
+            if (!true_label_instr)
+            {
+                return (ir_instruction_struct_t){.instructions = NULL, .instruction_count = 0};
+            }
+
+            true_label_instr->type = IR_INSTR_LABEL;
+            true_label_instr->instruction.label_instr.identifier = true_label;
+
+            combined_instructions[current_index++] = true_label_instr;
+
+            ir_instruction_t *copy_one = (ir_instruction_t *)allocate(sizeof(ir_instruction_t));
+            if (!copy_one)
+            {
+                return (ir_instruction_struct_t){.instructions = NULL, .instruction_count = 0};
+            }
+
+            copy_one->type = IR_INSTR_COPY;
+            ir_value_t *copy_dest_one = (ir_value_t *)allocate(sizeof(ir_value_t));
+            ir_value_t *copy_src_one = (ir_value_t *)allocate(sizeof(ir_value_t));
+
+            if (!copy_dest_one || !copy_src_one)
+            {
+                deallocate(copy_one);
+                if (copy_dest_one)
+                    deallocate(copy_dest_one);
+                if (copy_src_one)
+                    deallocate(copy_src_one);
+                return (ir_instruction_struct_t){.instructions = NULL, .instruction_count = 0};
+            }
+
+            copy_dest_one->type = IR_VAL_VARIABLE;
+            copy_dest_one->base.parent = &copy_one->base;
+            copy_src_one->type = IR_VAL_CONSTANT_INT;
+            copy_src_one->base.parent = &copy_one->base;
+
+            copy_dest_one->value.variable.identifier = ir_destination_value->value.variable.identifier;
+            copy_src_one->value.constant_int = 1;
+
+            copy_one->instruction.copy_instr.source = copy_src_one;
+            copy_one->instruction.copy_instr.destination = copy_dest_one;
+
+            combined_instructions[current_index++] = copy_one;
+
+            ir_instruction_t *end_label_instr = (ir_instruction_t *)allocate(sizeof(ir_instruction_t));
+            if (!end_label_instr)
+            {
+                return (ir_instruction_struct_t){.instructions = NULL, .instruction_count = 0};
+            }
+
+            end_label_instr->type = IR_INSTR_LABEL;
+            end_label_instr->instruction.label_instr.identifier = end_label;
+
+            combined_instructions[current_index++] = end_label_instr;
+        }
+        else
+        {
+            for (size_t i = 0; i < ir_right_instruction_struct.instruction_count; i++)
+            {
+                combined_instructions[current_index++] = ir_right_instruction_struct.instructions[i];
+            }
+
             combined_instructions[current_index++] = ir_binary_instruction;
         }
 
