@@ -10,7 +10,7 @@ PROD_DIR = neocc/production
 # Source and output
 SRCS = $(SRC_DIR)/compiler.c
 TEST_TARGET = $(TEST_DIR)/neocc_test
-PROD_TARGET = $(PROD_DIR)/neocc_prod
+PROD_TARGET = $(PROD_DIR)/neocc
 
 # Common flags for both targets
 COMMON_FLAGS = $(CFLAGS)

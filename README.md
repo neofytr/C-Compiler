@@ -12,10 +12,10 @@
 
 2. Build the project:
    ```bash
-   make
+   make production
    ```
 
-   The compiled binary will be placed in the `bin/` directory as `neocc`.
+   The compiled binary will be placed in the `bin/production` directory as `neocc`.
 
 3. Clean up build files:
    ```bash
@@ -36,12 +36,12 @@ neocc <source_file> [-o <output_file>]
 
 1. Compile `example.c` and output to `output.asm` (default):
    ```bash
-   ./bin/neocc example.c
+   ./bin/production/neocc example.c
    ```
 
 2. Compile `example.c` and specify the output file:
    ```bash
-   ./bin/neocc example.c -o custom_output.asm
+   ./bin/production/neocc example.c -o custom_output.asm
    ```
 
 ## Contributing
