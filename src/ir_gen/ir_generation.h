@@ -283,34 +283,6 @@ ir_instruction_struct_t ir_handle_expression(expression_t *source_expression)
             }
         }
 
-        if (ir_left_instruction_struct.instruction_count > 0)
-        {
-            ir_left_value = allocate(sizeof(ir_value_t));
-            ir_left_value->base.type = IR_NODE_VALUE;
-            ir_left_value->base.parent = NULL;
-            ir_left_value->type = IR_VAL_VARIABLE;
-
-            ir_instruction_t *last_instruction = ir_left_instruction_struct.instructions[ir_left_instruction_struct.instruction_count - 1];
-            switch (last_instruction->type)
-            {
-            case IR_INSTR_BINARY:
-                ir_left_value->value.variable.identifier =
-                    last_instruction->instruction.binary_instr.destination->value.variable.identifier;
-                break;
-            case IR_INSTR_UNARY:
-                ir_left_value->value.variable.identifier =
-                    last_instruction->instruction.unary_instr.destination->value.variable.identifier;
-                break;
-            case IR_INSTR_RETURN:
-                ir_left_value->value.variable.identifier =
-                    last_instruction->instruction.return_instr.value->value.variable.identifier;
-                break;
-            default:
-                ir_left_value = NULL;
-                break;
-            }
-        }
-
         if (ir_right_instruction_struct.instruction_count > 0)
         {
             ir_right_value = allocate(sizeof(ir_value_t));
@@ -394,6 +366,12 @@ ir_instruction_struct_t ir_handle_expression(expression_t *source_expression)
         {
             total_instruction_count = ir_left_instruction_struct.instruction_count +
                                       ir_right_instruction_struct.instruction_count + 7;
+        }
+        else if (ir_binary_operator == IR_BINARY_LOGICAL_OR)
+        {
+            total_instruction_count =
+                ir_left_instruction_struct.instruction_count +
+                ir_right_instruction_struct.instruction_count + 8;
         }
         else
         {
