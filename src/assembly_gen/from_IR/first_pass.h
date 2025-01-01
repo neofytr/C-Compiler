@@ -334,100 +334,219 @@ asm_instruction_struct_t handle_ir_instruction(ir_instruction_t *ir_instruction)
     case IR_INSTR_UNARY:
     {
         ir_instruction_unary_t ir_unary_instr = ir_instruction->instruction.unary_instr;
-
-        asm_instruction_struct_t result = {
-            .instructions = (asm_instruction_t **)allocate(2 * sizeof(asm_instruction_t *)),
-            .instruction_count = 2};
-
-        if (!result.instructions)
-        {
-            return NULL_INSTRUCTION_STRUCT_ASM;
-        }
-
-        asm_instruction_t *asm_instruction_mov = (asm_instruction_t *)allocate(sizeof(asm_instruction_t));
-        if (!asm_instruction_mov)
-        {
-            return NULL_INSTRUCTION_STRUCT_ASM;
-        }
-
-        asm_instruction_mov->type = INSTRUCTION_MOV;
-        asm_instruction_mov->base.type = ASM_NODE_INSTRUCTION;
-
-        asm_operand_t *asm_mov_src = (asm_operand_t *)allocate(sizeof(asm_operand_t));
-        asm_operand_t *asm_mov_dst = (asm_operand_t *)allocate(sizeof(asm_operand_t));
-
-        if (!asm_mov_src || !asm_mov_dst)
-        {
-            return NULL_INSTRUCTION_STRUCT_ASM;
-        }
-
-        switch (ir_unary_instr.source->type)
-        {
-        case IR_VAL_CONSTANT_INT:
-        {
-            asm_mov_src->type = OPERAND_IMMEDIATE;
-            asm_mov_src->operand.immediate.value = ir_unary_instr.source->value.constant_int;
-            break;
-        }
-        case IR_VAL_VARIABLE:
-        {
-            asm_mov_src->type = OPERAND_PSEUDO;
-            asm_mov_src->operand.pseudo.pseudo_name = ir_unary_instr.source->value.variable.identifier->name;
-            break;
-        }
-        default:
-            return NULL_INSTRUCTION_STRUCT_ASM;
-        }
-
-        asm_mov_dst->type = OPERAND_PSEUDO;
-        asm_mov_dst->operand.pseudo.pseudo_name = ir_unary_instr.destination->value.variable.identifier->name;
-
-        asm_instruction_mov->instr.mov = (asm_instruction_mov_t){.src = asm_mov_src, .dst = asm_mov_dst};
-
-        asm_instruction_t *asm_instruction_unary = (asm_instruction_t *)allocate(sizeof(asm_instruction_t));
-        if (!asm_instruction_unary)
-        {
-            return NULL_INSTRUCTION_STRUCT_ASM;
-        }
-
-        asm_instruction_unary->type = INSTRUCTION_UNARY;
-        asm_instruction_unary->base.type = ASM_NODE_INSTRUCTION;
-
-        asm_unary_operator_t *asm_unary_op = (asm_unary_operator_t *)allocate(sizeof(asm_unary_operator_t));
-        if (!asm_unary_op)
-        {
-            return NULL_INSTRUCTION_STRUCT_ASM;
-        }
-
         switch (ir_unary_instr.unary_operator->unary_op)
         {
-        case IR_UNARY_BITWISE_COMPLEMENT:
-            asm_unary_op->op = UNARY_NOT;
-            break;
-        case IR_UNARY_NEGATE:
-            asm_unary_op->op = UNARY_NEG;
-            break;
-        default:
-            return NULL_INSTRUCTION_STRUCT_ASM;
-        }
-
-        asm_operand_t *asm_unary_operand = (asm_operand_t *)allocate(sizeof(asm_operand_t));
-        if (!asm_unary_operand)
+        case IR_UNARY_NOT:
         {
-            return NULL_INSTRUCTION_STRUCT_ASM;
+            asm_instruction_struct_t result = {
+                .instructions = (asm_instruction_t **)allocate(3 * sizeof(asm_instruction_t *)),
+                .instruction_count = 3,
+            };
+
+            if (!result.instructions)
+            {
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            asm_instruction_t *asm_instruction_cmp = (asm_instruction_t *)allocate(sizeof(asm_instruction_t));
+            if (!asm_instruction_cmp)
+            {
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+            asm_instruction_cmp->type = INSTRUCTION_CMP;
+            asm_instruction_cmp->base.type = ASM_NODE_INSTRUCTION;
+
+            asm_operand_t *cmp_first = (asm_operand_t *)allocate(sizeof(asm_operand_t));
+            asm_operand_t *cmp_second = (asm_operand_t *)allocate(sizeof(asm_operand_t));
+            if (!cmp_first || !cmp_second)
+            {
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            cmp_first->base.parent = &asm_instruction_cmp->base;
+            cmp_first->base.type = ASM_NODE_OPERAND;
+            cmp_second->base.parent = &asm_instruction_cmp->base;
+            cmp_second->base.type = ASM_NODE_OPERAND;
+
+            switch (ir_unary_instr.source->type)
+            {
+            case IR_VAL_CONSTANT_INT:
+                cmp_first->type = OPERAND_IMMEDIATE;
+                cmp_first->operand.immediate.value = ir_unary_instr.source->value.constant_int;
+                break;
+            case IR_VAL_VARIABLE:
+                cmp_first->type = OPERAND_PSEUDO;
+                cmp_first->operand.pseudo.pseudo_name = ir_unary_instr.source->value.variable.identifier->name;
+                break;
+            default:
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            cmp_second->type = OPERAND_IMMEDIATE;
+            cmp_second->operand.immediate.value = 0;
+
+            asm_instruction_cmp->instr.cmp = (asm_instruction_cmp_t){
+                .first_operand = cmp_first,
+                .second_operand = cmp_second};
+
+            asm_instruction_t *asm_instruction_mov = (asm_instruction_t *)allocate(sizeof(asm_instruction_t));
+            if (!asm_instruction_mov)
+            {
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+            asm_instruction_mov->type = INSTRUCTION_MOV;
+            asm_instruction_mov->base.type = ASM_NODE_INSTRUCTION;
+
+            asm_operand_t *mov_src = (asm_operand_t *)allocate(sizeof(asm_operand_t));
+            asm_operand_t *mov_dst = (asm_operand_t *)allocate(sizeof(asm_operand_t));
+            if (!mov_src || !mov_dst)
+            {
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            mov_src->base.parent = &asm_instruction_mov->base;
+            mov_src->base.type = ASM_NODE_OPERAND;
+            mov_dst->base.parent = &asm_instruction_mov->base;
+            mov_dst->base.type = ASM_NODE_OPERAND;
+
+            mov_src->type = OPERAND_IMMEDIATE;
+            mov_src->operand.immediate.value = 0;
+
+            mov_dst->type = OPERAND_PSEUDO;
+            mov_dst->operand.pseudo.pseudo_name = ir_unary_instr.destination->value.variable.identifier->name;
+
+            asm_instruction_mov->instr.mov = (asm_instruction_mov_t){
+                .src = mov_src,
+                .dst = mov_dst};
+
+            asm_instruction_t *asm_instruction_setcc = (asm_instruction_t *)allocate(sizeof(asm_instruction_t));
+            if (!asm_instruction_setcc)
+            {
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+            asm_instruction_setcc->type = INSTRUCTION_SETCC;
+            asm_instruction_setcc->base.type = ASM_NODE_INSTRUCTION;
+
+            asm_operand_t *setcc_dst = (asm_operand_t *)allocate(sizeof(asm_operand_t));
+            if (!setcc_dst)
+            {
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            setcc_dst->base.parent = &asm_instruction_setcc->base;
+            setcc_dst->base.type = ASM_NODE_OPERAND;
+
+            setcc_dst->type = OPERAND_PSEUDO;
+            setcc_dst->operand.pseudo.pseudo_name = ir_unary_instr.destination->value.variable.identifier->name;
+
+            asm_instruction_setcc->instr.setcc = (asm_instruction_setcc_t){
+                .condition = COND_E, // Set if equal to zero
+                .dst = setcc_dst};
+
+            result.instructions[0] = asm_instruction_cmp;
+            result.instructions[1] = asm_instruction_mov;
+            result.instructions[2] = asm_instruction_setcc;
+
+            return result;
         }
+        case IR_UNARY_BITWISE_COMPLEMENT:
+        case IR_UNARY_NEGATE:
+        {
+            asm_instruction_struct_t result = {
+                .instructions = (asm_instruction_t **)allocate(2 * sizeof(asm_instruction_t *)),
+                .instruction_count = 2};
 
-        asm_unary_operand->type = OPERAND_PSEUDO;
-        asm_unary_operand->operand.pseudo.pseudo_name = ir_unary_instr.destination->value.variable.identifier->name;
+            if (!result.instructions)
+            {
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
 
-        asm_instruction_unary->instr.unary = (asm_instruction_unary_t){
-            .unary_operator = asm_unary_op,
-            .operand = asm_unary_operand};
+            asm_instruction_t *asm_instruction_mov = (asm_instruction_t *)allocate(sizeof(asm_instruction_t));
+            if (!asm_instruction_mov)
+            {
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
 
-        result.instructions[0] = asm_instruction_mov;
-        result.instructions[1] = asm_instruction_unary;
+            asm_instruction_mov->type = INSTRUCTION_MOV;
+            asm_instruction_mov->base.type = ASM_NODE_INSTRUCTION;
 
-        return result;
+            asm_operand_t *asm_mov_src = (asm_operand_t *)allocate(sizeof(asm_operand_t));
+            asm_operand_t *asm_mov_dst = (asm_operand_t *)allocate(sizeof(asm_operand_t));
+
+            if (!asm_mov_src || !asm_mov_dst)
+            {
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            switch (ir_unary_instr.source->type)
+            {
+            case IR_VAL_CONSTANT_INT:
+            {
+                asm_mov_src->type = OPERAND_IMMEDIATE;
+                asm_mov_src->operand.immediate.value = ir_unary_instr.source->value.constant_int;
+                break;
+            }
+            case IR_VAL_VARIABLE:
+            {
+                asm_mov_src->type = OPERAND_PSEUDO;
+                asm_mov_src->operand.pseudo.pseudo_name = ir_unary_instr.source->value.variable.identifier->name;
+                break;
+            }
+            default:
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            asm_mov_dst->type = OPERAND_PSEUDO;
+            asm_mov_dst->operand.pseudo.pseudo_name = ir_unary_instr.destination->value.variable.identifier->name;
+
+            asm_instruction_mov->instr.mov = (asm_instruction_mov_t){.src = asm_mov_src, .dst = asm_mov_dst};
+
+            asm_instruction_t *asm_instruction_unary = (asm_instruction_t *)allocate(sizeof(asm_instruction_t));
+            if (!asm_instruction_unary)
+            {
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            asm_instruction_unary->type = INSTRUCTION_UNARY;
+            asm_instruction_unary->base.type = ASM_NODE_INSTRUCTION;
+
+            asm_unary_operator_t *asm_unary_op = (asm_unary_operator_t *)allocate(sizeof(asm_unary_operator_t));
+            if (!asm_unary_op)
+            {
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            switch (ir_unary_instr.unary_operator->unary_op)
+            {
+            case IR_UNARY_BITWISE_COMPLEMENT:
+                asm_unary_op->op = UNARY_NOT;
+                break;
+            case IR_UNARY_NEGATE:
+                asm_unary_op->op = UNARY_NEG;
+                break;
+            default:
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            asm_operand_t *asm_unary_operand = (asm_operand_t *)allocate(sizeof(asm_operand_t));
+            if (!asm_unary_operand)
+            {
+                return NULL_INSTRUCTION_STRUCT_ASM;
+            }
+
+            asm_unary_operand->type = OPERAND_PSEUDO;
+            asm_unary_operand->operand.pseudo.pseudo_name = ir_unary_instr.destination->value.variable.identifier->name;
+
+            asm_instruction_unary->instr.unary = (asm_instruction_unary_t){
+                .unary_operator = asm_unary_op,
+                .operand = asm_unary_operand};
+
+            result.instructions[0] = asm_instruction_mov;
+            result.instructions[1] = asm_instruction_unary;
+
+            return result;
+        }
+        }
     }
     case IR_INSTR_BINARY:
     {
