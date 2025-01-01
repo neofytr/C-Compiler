@@ -38,7 +38,7 @@ $(TEST_TARGET): $(SRCS) | $(TEST_DIR)
 production: $(PROD_TARGET)
 
 $(PROD_TARGET): $(SRCS) | $(PROD_DIR)
-	$(CC) $(COMMON_FLAGS) $(PROD_FLAGS) -o $@ $<
+	$(CC) $(PROD_FLAGS) -o $@ $<
 
 # Clean build artifacts
 clean:

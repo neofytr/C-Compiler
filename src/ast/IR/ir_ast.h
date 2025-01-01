@@ -111,24 +111,24 @@ typedef struct ir_instruction__copy_e
 
 typedef struct ir_instruction_jump_e
 {
-    identifier_t *target;
+    ir_identifier_t *target;
 } ir_instruction_jump_t;
 
 typedef struct ir_instruction_jz_e
 {
     ir_value_t *condition;
-    identifier_t *target;
+    ir_identifier_t *target;
 } ir_instruction_jz_t;
 
 typedef struct ir_instruction_jnz_e
 {
     ir_value_t *condition;
-    identifier_t *target;
+    ir_identifier_t *target;
 } ir_instruction_jnz_t;
 
 typedef struct ir_instruction_label_e
 {
-    identifier_t *identifier;
+    ir_identifier_t *identifier;
 } ir_instruction_label_t;
 
 typedef enum
