@@ -152,3 +152,24 @@ C has a bunch of different kinds of undefined behavior; integer overflow is just
 Undefined behavior is different from *unspecified behavior*. If some aspect of a program's behavior is unspecified, there are several possible ways it could behave, but it can't behave totally unpredictably. For example, before, we learned that the operands in a binary expression are unsequenced (or indeterminately sequenced, if either is a function call), so their evaluation order is unspecified. This doesn't mean the expression's behavior is undefined: there's just two possibilities (evaluating left operand before right or vice versa) and a compiler designer must chose which to implement. 
 
 When we evaluate the expression printf("Hello, ") + printf("World!"), the program can print either "Hello, " or "World!" first, but it can’t go off and do something else entirely. Unsequenced operations can produce undefined behavior under certain circumstances—say, if you perform two unsequenced updates to the same variable—but performing unsequenced or indeterminately sequenced operations is not an undefined behavior in and of itself.
+
+Unspecified behavior is a normal part of any C program. It's a problem only if your program relies on a particular behavior that the standard doesn't specify, like in the Hello, World! example. Undefined behavior, on the other hand, is always a problem; if it occurs anywhere in your program, you can't count on any part of the program to work correctly.
+
+# Conditional Set Instructions
+
+To implement a relational operator, we first set some flags using the `cmp` instruction, then set the result of the expression based on those flags. We perform that second step with a *conditional set* instruction. Each conditional set instruction takes a single register or memory address as an operand, which it sets to 0 or 1 based on the state of the RFLAGS. The conditional set instructions are all identical, except that they test for different conditions.
+
+| Instruction | Meaning                                        | Flags                   |
+| ----------- | ---------------------------------------------- | ----------------------- |
+| sete        | Set byte if a == b                             | ZF is set               |
+| setne       | Set byte if a != b                             | ZF not set              |
+| setg        | Set byte if a > b for signed integers a and b  | ZF not set and SF == OF |
+| setge       | Set byte if a >= b for signed integers a and b | SF == OF                |
+| setl        | Set byte if a < b for signed integers a and b  | SF != OF and ZF not set |
+| setle       | Set byte if a <= b for signed integers a and b | SF != OF                |
+
+Unlike the other instructions we saw before, conditional set instructions take only 1-byte operands. Also, an instruction like `sete al` only affects the AL register, the least significant byte of RAX; the upper bytes of RAX remain untouched. To conditionally set the whole of RAX to 0 or 1, we need to zero out RAX before we set AL.
+
+If it's operand is a memory address, a conditional set instruction will update the single byte at that address. Note that a memory address can be 1-byte, 4-byte, or 8-byte operand, depending on the context if it's clear through the context which size we are referring to; or otherwise through use of memory size specifiers in front of the memory operand (like word, qword, byte etc).
+
+
