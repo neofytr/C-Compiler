@@ -42,17 +42,16 @@ For now, all integer types we implement are signed.
 
 The following summarizes the cases where each kind of signed integer overflow/underflow is possible:
 
-| Operation | Condition | Result                             |
-|-----------|-----------|------------------------------------|
-| a + b     | b > 0     |                                    |
-|           | a > 0     | Overflow from positive to negative |
-|           | a < 0     | Neither                            |
-|           | b < 0     |                                    |
-|           | a > 0     | Neither                            |
-|           | a < 0     | Overflow from negative to positive |
-| a - b     | b > 0     |                                    |
-|           | a > 0     | Neither                            |
-|           | a < 0     | Overflow from negative to positive |
-|           | b < 0     |                                    |
-|           | a > 0     | Overflow from positive to negative |
-|           | a < 0     | Neither                            |
+For addition (a + b):
+
+| a value | b > 0 | b < 0 |
+|---------|--------|--------|
+| a > 0 | Overflow from positive to negative | Neither |
+| a < 0 | Neither | Overflow from negative to positive |
+
+For subtraction (a - b):
+
+| a value | b > 0 | b < 0 |
+|---------|--------|--------|
+| a > 0 | Neither | Overflow from positive to negative |
+| a < 0 | Overflow from negative to positive | Neither |
