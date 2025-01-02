@@ -9,9 +9,9 @@
 #include <stdbool.h>
 #include <string.h>
 
-#define MAX_FILE_SIZE 1024
+#define MAX_FILE_SIZE 1000000
 #define MAX_TOKEN_LENGTH 128
-#define MAX_TOKEN_NUMBER 128
+#define MAX_TOKEN_NUMBER 1000000
 
 /*
 If an identifier is not defined in the current scope and is used in the program
@@ -95,7 +95,7 @@ static const size_t KEYWORD_COUNT = sizeof(KEYWORDS) / sizeof(KEYWORDS[0]);
 
 typedef struct
 {
-    token_t tokens[MAX_TOKEN_NUMBER];
+    token_t *tokens;
     size_t count;
 } token_list_t;
 
@@ -554,7 +554,7 @@ static uint8_t *read_source_file(const char *filename, size_t *file_size)
     }
 
     long size = ftell(file);
-    if (size < 0 || size > MAX_FILE_SIZE - 1)
+    if (size < 0)
     {
         fprintf(stderr, "File size error or file too large\n");
         fclose(file);

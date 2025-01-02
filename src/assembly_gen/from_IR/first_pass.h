@@ -5,7 +5,7 @@
 #include "../../ast/IR/ir_ast.h"
 #include "../../allocator/allocator.h"
 
-#define MAX_INSTR_NO_IN_FXN 1024
+#define MAX_INSTR_NO_IN_FXN 10000000
 
 typedef struct
 {
@@ -1277,7 +1277,7 @@ asm_function_t *handle_ir_function(ir_function_t *ir_function)
         return NULL;
     }
 
-    asm_instruction_t *asm_instruction_buffer[MAX_INSTR_NO_IN_FXN] = {0};
+    asm_instruction_t **asm_instruction_buffer = (asm_instruction_t **)allocate(MAX_INSTR_NO_IN_FXN * sizeof(asm_instruction_t *));
     size_t total_asm_instruction_count = 0;
 
     size_t ir_instruction_count = ir_function->instruction_count;
@@ -1324,6 +1324,7 @@ asm_function_t *handle_ir_function(ir_function_t *ir_function)
     asm_function->instructions = total_asm_instructions;
     asm_function->instruction_count = total_asm_instruction_count;
 
+    deallocate(asm_instruction_buffer);
     return asm_function;
 }
 

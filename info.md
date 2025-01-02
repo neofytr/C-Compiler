@@ -243,5 +243,41 @@ Variable assignment is the first expression we've encountered that has a *side e
 
 An action counts as a side effect only if it's visible outside of the language construct in question. For example, updating a local variable is a side effect of an assignment expression because the variable's new value is visible outside of that expression. But it's not a side effect of the function that contains the assignment expression, because the effect isn't visible outside of that function. Updating a global variable, on the other hand, would be a side effect of the expression and the function.
 
+Since we're implementing expressions with side effects, it also makes sense to add support for *expression statements*, which evaluate an expression, but don't use the result. Statement that assign to variables, like
+
+```c
+foo = 3 * 3;
+```
+
+are expression statements. This expression has the side effect of assigning the value 9 to `foo`. The result of the whole expression is also the value 9, but this result isn't used anywhere; only the side effect of updating `foo` affects the program.
+
+You can also have expression statements with no side effect at all:
+
+```c
+1 + a * 2;
+```
+
+We don't typically see expression statements without side effects, because they're completely useless, but they're perfectly valid.
+
+Any expression can appear on the right side of the `=` operator, but only some expressions can appear on the left side. It makes sense to assign values to variables, array elements, and struct members.
+
+But it doesn't make sense to assign values to constants or the results of logical or arithmetic expressions.
+
+Expressions that can appear on the left side of an assignment are called *lvalues*. We currently only implement variables as lvalues.
+
+# Local Variables and Undefined Behavior
+
+With a few exceptions, using the value of an uninitialized variable leads to undefined behavior. Consider the following function:
+
+```c
+int foo(void)
+{
+    int a;
+    return a;
+}
+```
+
+It's possible that this function will allocate stack space for a without initializing it, then return whatever value happens to already be in that uninitialized memory. In this case, although the return value of `foo` will be unpredictable, the rest of the program will behave resonably. But because `foo`'s behavior is undefined, it's also possible that it will do something completely different; calling `foo` could crash the program or even make other functions misbehave later on.
+
 
 

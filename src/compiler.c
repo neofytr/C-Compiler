@@ -53,7 +53,17 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    token_list_t token_list = {0};
+    token_list_t token_list;
+    token_t *tokens = (token_t *)allocate(sizeof(token_t) * MAX_TOKEN_NUMBER);
+    if (!tokens)
+    {
+        perror("malloc");
+        return EXIT_FAILURE;
+    }
+
+    token_list.tokens = tokens;
+
+    token_list.count = 0;
     if (!lex_source(source, &token_list))
     {
         fprintf(stderr, "Error: Lexing failed for file '%s'.\n", input_file);

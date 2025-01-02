@@ -16,7 +16,7 @@ void default_deallocator(void *ptr);
 void *custom_allocator(size_t size);
 void custom_deallocator(void *ptr);
 
-#define CUSTOM_ALLOCATOR
+// #define CUSTOM_ALLOCATOR
 
 allocator_t allocate =
 #ifndef CUSTOM_ALLOCATOR
