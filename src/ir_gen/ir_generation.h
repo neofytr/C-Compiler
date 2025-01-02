@@ -7,8 +7,8 @@
 #include "../allocator/allocator.h"
 
 #define NULL_INSTRUCTION_STRUCT ((ir_instruction_struct_t){0})
-#define MAX_TEMP_VAR_LENGTH 8
-#define MAX_LABEL_LENGTH 10
+#define MAX_TEMP_VAR_LENGTH 16
+#define MAX_LABEL_LENGTH 16
 
 #define DEBUG_NULL_RETURN(func_name) \
     fprintf(stderr, "NULL return in %s at line %d\n", func_name, __LINE__)
@@ -147,8 +147,8 @@ char *new_false_label_name()
         return NULL;
     }
 
-    int r = snprintf(temp_label_name, MAX_LABEL_LENGTH, "_false%zu", false_label_count++);
-    if (r > MAX_TEMP_VAR_LENGTH || r < 6)
+    int r = snprintf(temp_label_name, MAX_LABEL_LENGTH, ".L_false%zu", false_label_count++);
+    if (r > MAX_TEMP_VAR_LENGTH || r < 8)
     {
         deallocate(temp_label_name);
         return NULL;
@@ -165,8 +165,8 @@ char *new_end_label_name()
         return NULL;
     }
 
-    int r = snprintf(temp_label_name, MAX_LABEL_LENGTH, "_end%zu", end_label_count++);
-    if (r > MAX_TEMP_VAR_LENGTH || r < 4)
+    int r = snprintf(temp_label_name, MAX_LABEL_LENGTH, ".L_end%zu", end_label_count++);
+    if (r > MAX_TEMP_VAR_LENGTH || r < 6)
     {
         deallocate(temp_label_name);
         return NULL;
