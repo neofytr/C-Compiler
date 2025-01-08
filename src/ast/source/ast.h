@@ -14,6 +14,10 @@ typedef struct unary_t unary_t;
 typedef struct unary_operator_t unary_operator_t;
 typedef struct binary_t binary_t;
 typedef struct binary_operator_t binary_operator_t;
+typedef struct variable_t variable_t;
+typedef struct assignment_t assignment_t;
+typedef struct null_expr_t null_expr_t;
+typedef struct declaration_t declaration_t;
 
 typedef enum ast_node_type_e
 {
@@ -21,6 +25,8 @@ typedef enum ast_node_type_e
     NODE_FUNCTION_DEF,
     NODE_STATEMENT,
     NODE_EXPRESSION,
+    NODE_NULL_EXPRESSION,
+    NODE_DECLARATION,
     NODE_IDENTIFIER,
     NODE_UNARY_OP,
     NODE_BINARY_OP,
@@ -32,6 +38,8 @@ typedef enum expression_type_e
     EXPR_UNARY,
     EXPR_NESTED,
     EXPR_BINARY,
+    EXPR_VAR,
+    EXPR_ASSIGN,
 } expression_type_t;
 
 typedef enum statement_type_e
@@ -127,12 +135,71 @@ struct binary_operator_t
     binary_operator_type_t binary_operator;
 };
 
+struct declaration_t
+{
+    identifier_t *name;
+    expression_t *init_expr;
+    bool has_init_expr;
+    /* currently, we will only support int type */
+};
+
+/* declarations are a separate AST node, nother another kind of statement,
+because declarations aren't statements */
+
+/* the difference is that statements are executed when the program runs, whereas
+declarations simply tell the compiler that some identifier exists and can be
+used later */
+
+/* this distinction will become obvious during IR generation; we'll handle declarations
+with initializers like normal variable assignments, but declarations without initializers will just
+disappear */
+
+/* the more concrete difference, from the parser's perspective, is that there are parts of a program
+where a statement can appear but a declaration can't */
+
+/* for ex, the body of an if statement is always another statement: */
+
+/*
+
+if (a == 2)
+    return 4;
+
+*/
+
+/* It can't be a declaration, because declarations aren't statements; so this is invalid: */
+
+/*
+
+if (a == 2)
+    int x = 0;
+
+*/
+
+/* A list of statements and declarations wrapped in braces is actually a single statement, called a
+compound statement; it can be placed anywhere a statement can, for ex, after an if constructor */
+
+/* we need to distinguish between a declaration and a statement in the ast */
+
 struct binary_t
 {
     binary_operator_t *op;
     expression_t *left_expr;
     expression_t *right_expr;
 };
+
+struct assignment_t
+{
+    expression_t *lvalue;
+    /* when we parse the program, we'll allow any expression on the left-hand side of an assignment */
+    /* in the semantic analysis stage, we'll make sure that it's a valid lvalue */
+    /* we validate lvalues during semantic analysis, rather than during parsing, because we'll need to support more complex lvalues later*/
+    expression_t *rvalue;
+};
+
+struct variable_t
+{
+    identifier_t *name;
+}
 
 struct expression_t
 {
@@ -144,7 +211,14 @@ struct expression_t
         int constant_int;
         expression_t *nested_expr;
         binary_t binary;
+        variable_t var;      // to support variables in expressions
+        assignment_t assign; // since variable assignment is also an expression
     } value;
+};
+
+struct null_expr_t
+{
+    ast_node_t base;
 };
 
 /**
@@ -157,8 +231,17 @@ struct statement_t
     union
     {
         expression_t *return_expr;
+        expression_t *expr; // expressions can just as well be statements too; foo = 3 * 3 is also an expression
+                            // with value 9 but with the side effect of updating foo to 9
+        null_expr_t *null_expr;
     } value;
 };
+
+typedef union
+{
+    statement_t *statement;
+    declaration_t *declaration;
+} block_item_t;
 
 /**
  * Function definition node
@@ -167,7 +250,7 @@ struct function_def_t
 {
     ast_node_t base;
     identifier_t *name;
-    statement_t *body;
+    block_item_t *body;
 };
 
 /**

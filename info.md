@@ -308,4 +308,21 @@ int main(void)
 
 These examples aren't an exhaustive overview of every possible undefined behaviour involving local variables, but they illustrate how problems that appear to affect one small part of a program can make the entire program's behavior undefined.
 
+# Need for a null statement
 
+A null statement has no content; it's just a semicolon. It's a placeholder for when the grammar requires a statement, but you don't want that statement to do anything.
+
+The following code, from section 6.8.3, paragraph 5, of the C standard, illustrates why one might need a null statement:
+
+```c
+
+char *s;
+/* ... */
+while (*s++ != '\0')
+;
+
+```
+
+In this example, the while loop finds the end of a null-terminated string by iterating over each character until it reaches the null byte. The loop body doesn't need to do anything, because all the work happens in the controlling expression, but omitting the loop body completely would be syntactically invalid. Instead, we can use the null statement.
+
+Null statements don't really have anything to do with local variables, but we'll implement them here because they're technically a kind of expression statement.
