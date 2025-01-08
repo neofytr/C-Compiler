@@ -279,5 +279,33 @@ int foo(void)
 
 It's possible that this function will allocate stack space for a without initializing it, then return whatever value happens to already be in that uninitialized memory. In this case, although the return value of `foo` will be unpredictable, the rest of the program will behave resonably. But because `foo`'s behavior is undefined, it's also possible that it will do something completely different; calling `foo` could crash the program or even make other functions misbehave later on.
 
+Consider the following two unsequenced variable assignments:
+
+```c
+
+int main(void)
+{
+    int a;
+    (a = 4) + (a = 5);
+    return a;
+}
+
+```
+
+Remember that the operands of a binary operator are unsequenced; they can be evaluated in any order. It might look like this program has two possible behaviors: it could return either 4 or 5. But performing multiple unsequenced assignments to the same variable is undefined behaviour, so there are no restrictions on how this program might behave. In practice, it will return 4 or 5, but that isn't guaranteed.
+
+Similarly, the behavior is undefined if you use a variable's value and assign to it in unsequenced expressions:
+
+```c
+
+int main(void)
+{
+    int a = 0;
+    return (a = 1) + a;
+}
+
+```
+
+These examples aren't an exhaustive overview of every possible undefined behaviour involving local variables, but they illustrate how problems that appear to affect one small part of a program can make the entire program's behavior undefined.
 
 
