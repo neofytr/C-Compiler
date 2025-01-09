@@ -672,6 +672,8 @@ statement_t *parse_statement(parser_t *parser)
         statement->base.parent = NULL;
         statement->stmt_type = STMT_RETURN;
 
+        advance_token(parser);
+
         expression_t *expression = parse_expression(parser, MIN_PRECEDENCE);
         if (!expression)
         {
@@ -693,6 +695,7 @@ statement_t *parse_statement(parser_t *parser)
         statement->base.location.column = curr_token->column;
         statement->base.parent = NULL;
         statement->stmt_type = STMT_NULL;
+        advance_token(parser);
         break;
     }
     default:
@@ -797,9 +800,7 @@ function_def_t *parse_function(parser_t *parser)
         return NULL;
     }
 
-#define STATEMENT_MIN 256
-
-    size_t capacity = STATEMENT_MIN;
+    size_t capacity = 256;
     block_item_t **stmt_arr = (block_item_t **)allocate(capacity * sizeof(block_item_t *));
     if (!stmt_arr)
     {
@@ -809,8 +810,22 @@ function_def_t *parse_function(parser_t *parser)
 
     size_t counter = 0;
 
-    while (peek_token(parser)->type != TOKEN_CLOSING_BRACE)
+    while (true)
     {
+        token_t *next_token = peek_token(parser);
+        if (!next_token)
+        {
+            function->body = stmt_arr;
+            function->block_count = counter;
+            free_function_def(function);
+            return NULL;
+        }
+
+        if (next_token->type == TOKEN_CLOSING_BRACE)
+        {
+            break;
+        }
+
         if (counter >= capacity)
         {
             size_t new_capacity = capacity * 2;
@@ -830,6 +845,13 @@ function_def_t *parse_function(parser_t *parser)
         }
 
         token_t *curr_tok = peek_token(parser);
+        if (!curr_tok)
+        {
+            function->body = stmt_arr;
+            function->block_count = counter;
+            free_function_def(function);
+            return NULL;
+        }
 
         block_item_t *item = (block_item_t *)allocate(sizeof(block_item_t));
         if (!item)
@@ -840,7 +862,7 @@ function_def_t *parse_function(parser_t *parser)
             return NULL;
         }
 
-        if (!strcmp(curr_tok->value, "int"))
+        if (strcmp(curr_tok->value, "int") == 0)
         {
             advance_token(parser);
 
@@ -904,7 +926,17 @@ function_def_t *parse_function(parser_t *parser)
             advance_token(parser);
 
             curr_tok = peek_token(parser);
-            if (curr_tok && !strcmp(curr_tok->value, "="))
+            if (!curr_tok)
+            {
+                deallocate(dec);
+                deallocate(item);
+                function->body = stmt_arr;
+                function->block_count = counter;
+                free_function_def(function);
+                return NULL;
+            }
+
+            if (!strcmp(curr_tok->value, "="))
             {
                 advance_token(parser);
                 dec->has_init_expr = true;
