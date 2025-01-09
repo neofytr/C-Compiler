@@ -3,13 +3,14 @@
 
 #include "../ast/source/ast.h"
 #include "../parser/parser.h"
+#include "../hash_table/var_res_hash_table.h"
 
 bool var_res_pass(program_t *program);
-bool resolve_statement(statement_t *statement);
-bool resolve_declaration(declaration_t *declaration);
-bool resolve_expression(expression_t *expression);
+bool resolve_statement(statement_t *statement, hash_table_t *hash_table);
+bool resolve_declaration(declaration_t *declaration, hash_table_t *hash_table);
+bool resolve_expression(expression_t *expression, hash_table_t *hash_table);
 
-bool resolve_expression(expression_t *expression)
+bool resolve_expression(expression_t *expression, hash_table_t *hash_table)
 {
     if (!expression)
     {
@@ -20,19 +21,19 @@ bool resolve_expression(expression_t *expression)
     {
     case EXPR_NESTED:
     {
-        return resolve_expression(expression->value.nested_expr);
+        return resolve_expression(expression->value.nested_expr, hash_table);
         break;
     }
     case EXPR_ASSIGN:
     {
         assignment_t assign = expression->value.assign;
-        return resolve_expression(assign.lvalue) && resolve_expression(assign.rvalue);
+        return resolve_expression(assign.lvalue, hash_table) && resolve_expression(assign.rvalue, hash_table);
         break;
     }
     case EXPR_BINARY:
     {
         binary_t binary = expression->value.binary;
-        return resolve_expression(binary.left_expr) && resolve_expression(binary.right_expr);
+        return resolve_expression(binary.left_expr, hash_table) && resolve_expression(binary.right_expr, hash_table);
         break;
     }
     case EXPR_CONSTANT_INT:
@@ -43,18 +44,17 @@ bool resolve_expression(expression_t *expression)
     case EXPR_UNARY:
     {
         unary_t unary = expression->value.unary;
-        return resolve_expression(unary.expression);
+        return resolve_expression(unary.expression, hash_table);
         break;
     }
     case EXPR_VAR:
     {
         variable_t var = expression->value.var;
-        
     }
     }
 }
 
-bool resolve_statement(statement_t *statement)
+bool resolve_statement(statement_t *statement, hash_table_t *hash_table)
 {
     if (!statement)
     {
@@ -65,12 +65,12 @@ bool resolve_statement(statement_t *statement)
     {
     case STMT_RETURN:
     {
-        return resolve_expression(statement->value.return_expr);
+        return resolve_expression(statement->value.return_expr, hash_table);
         break;
     }
     case STMT_EXPR:
     {
-        return resolve_expression(statement->value.expr);
+        return resolve_expression(statement->value.expr, hash_table);
         break;
     }
     case STMT_NULL:
@@ -90,6 +90,12 @@ bool resolve_statement(statement_t *statement)
 
 bool var_res_pass(program_t *program)
 {
+    hash_table_t *hash_table = create_hash_table();
+    if (!hash_table)
+    {
+        return false;
+    }
+
     bool has_failed = false;
 
     if (!program)
@@ -118,7 +124,7 @@ bool var_res_pass(program_t *program)
         {
         case BLOCK_STATEMENT:
         {
-            if (!resolve_statement(block->value.statement))
+            if (!resolve_statement(block->value.statement, hash_table))
             {
                 has_failed = true;
             }
@@ -126,7 +132,7 @@ bool var_res_pass(program_t *program)
         }
         case BLOCK_DECLARATION:
         {
-            if (!resolve_declaration(block->value.declaration))
+            if (!resolve_declaration(block->value.declaration, hash_table))
             {
                 has_failed = true;
             }
