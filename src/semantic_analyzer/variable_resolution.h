@@ -11,27 +11,23 @@ bool resolve_declaration(declaration_t *declaration, var_table_t *var_table);
 bool resolve_expression(expression_t *expression, var_table_t *var_table);
 char *make_unique_name(const char *name);
 
-#define MAX_UNIQUE_NAME_LEN 256
-
 size_t unique_name_count = 0;
 
 char *make_unique_name(const char *name)
 {
-    char *new_name = (char *)allocate(sizeof(char) * MAX_UNIQUE_NAME_LEN);
+    char *new_name = (char *)allocate(sizeof(char) * 256);
     if (!new_name)
     {
         return NULL;
     }
 
-    if (snprintf(new_name, MAX_UNIQUE_NAME_LEN, "%s.%zu", name, unique_name_count++) < 0)
+    if (snprintf(new_name, 256, "%s.%zu", name, unique_name_count++) < 0)
     {
         return NULL;
     }
 
     return new_name;
 }
-
-#undef MAX_UNIQUE_NAME_LEN
 
 bool resolve_declaration(declaration_t *declaration, var_table_t *var_table)
 {
@@ -74,7 +70,7 @@ bool resolve_declaration(declaration_t *declaration, var_table_t *var_table)
     }
     else
     {
-        fprintf(stderr, "Error -> Line: %zu Column %zu -> Redeclaration of the variable %s\n", var->base.location.line, var->base.location.column, var_name);
+        fprintf(stderr, "Error -> Line: %zu Column: %zu -> Redeclaration of the variable %s\n", var->base.location.line, var->base.location.column, var_name);
         return false;
     }
 
@@ -91,33 +87,64 @@ bool resolve_expression(expression_t *expression, var_table_t *var_table)
     switch (expression->expr_type)
     {
     case EXPR_NESTED:
-    {
         return resolve_expression(expression->value.nested_expr, var_table);
-        break;
-    }
+
     case EXPR_ASSIGN:
     {
         assignment_t assign = expression->value.assign;
-        return resolve_expression(assign.lvalue, var_table) && resolve_expression(assign.rvalue, var_table);
-        break;
+        expression_t *lvalue = assign.lvalue;
+        if (!lvalue)
+        {
+            return false;
+        }
+
+        if (lvalue->expr_type != EXPR_VAR)
+        {
+            fprintf(stderr, "Error -> Line: %zu Column: %zu -> Unexpected lvalue, Expected a variable\n", expression->base.location.line, expression->base.location.column);
+            return false;
+        }
+
+        variable_t var = lvalue->value.var;
+        identifier_t *iden = var.name;
+        if (!iden)
+        {
+            return false;
+        }
+
+        char *name = iden->name;
+        if (!name)
+        {
+            return false;
+        }
+
+        var_node_t *searched_node = var_table_search(var_table, name);
+        if (!searched_node)
+        {
+            fprintf(stderr, "Error -> Line: %zu Column: %zu -> Undeclared Variable %s\n", expression->base.location.line, expression->base.location.column, name);
+            deallocate(name);
+            return false;
+        }
+
+        deallocate(name);
+        iden->name = strdup(searched_node->unique_name);
+        return resolve_expression(assign.rvalue, var_table);
     }
+
     case EXPR_BINARY:
     {
         binary_t binary = expression->value.binary;
         return resolve_expression(binary.left_expr, var_table) && resolve_expression(binary.right_expr, var_table);
-        break;
     }
+
     case EXPR_CONSTANT_INT:
-    {
         return true;
-        break;
-    }
+
     case EXPR_UNARY:
     {
         unary_t unary = expression->value.unary;
         return resolve_expression(unary.expression, var_table);
-        break;
     }
+
     case EXPR_VAR:
     {
         variable_t var = expression->value.var;
@@ -135,23 +162,19 @@ bool resolve_expression(expression_t *expression, var_table_t *var_table)
         var_node_t *searched_node = var_table_search(var_table, name);
         if (!searched_node)
         {
-            fprintf(stderr, "Error -> Line: %zu, Column: %zu -> %s not declared in the current scope\n", iden->base.location.column, iden->base.location.line, name);
+            fprintf(stderr, "Error -> Line: %zu Column: %zu -> %s not declared in the current scope\n", iden->base.location.line, iden->base.location.column, name);
+            deallocate(name);
             return false;
         }
 
         deallocate(name);
         iden->name = strdup(searched_node->unique_name);
         return true;
-        break;
-    }
-    default:
-    {
-        return false;
-        break;
-    }
     }
 
-    return false;
+    default:
+        return false;
+    }
 }
 
 bool resolve_statement(statement_t *statement, var_table_t *var_table)
@@ -164,43 +187,29 @@ bool resolve_statement(statement_t *statement, var_table_t *var_table)
     switch (statement->stmt_type)
     {
     case STMT_RETURN:
-    {
         return resolve_expression(statement->value.return_expr, var_table);
-        break;
-    }
-    case STMT_EXPR:
-    {
-        return resolve_expression(statement->value.expr, var_table);
-        break;
-    }
-    case STMT_NULL:
-    {
-        return true;
-        break;
-    }
-    default:
-    {
-        return false;
-        break;
-    }
-    }
 
-    return false;
+    case STMT_EXPR:
+        return resolve_expression(statement->value.expr, var_table);
+
+    case STMT_NULL:
+        return true;
+
+    default:
+        return false;
+    }
 }
 
 bool var_res_pass(program_t *program)
 {
-    var_table_t *var_table = create_var_table();
-    if (!var_table)
+    if (!program)
     {
         return false;
     }
 
-    bool has_failed = false;
-
-    if (!program)
+    var_table_t *var_table = create_var_table();
+    if (!var_table)
     {
-        destroy_var_table(var_table);
         return false;
     }
 
@@ -214,6 +223,8 @@ bool var_res_pass(program_t *program)
     size_t block_count = function->block_count;
     block_item_t **arr = function->body;
 
+    bool has_failed = false;
+
     for (size_t counter = 0; counter < block_count; counter++)
     {
         block_item_t *block = arr[counter];
@@ -226,21 +237,18 @@ bool var_res_pass(program_t *program)
         switch (block->type)
         {
         case BLOCK_STATEMENT:
-        {
             if (!resolve_statement(block->value.statement, var_table))
             {
                 has_failed = true;
             }
             break;
-        }
+
         case BLOCK_DECLARATION:
-        {
             if (!resolve_declaration(block->value.declaration, var_table))
             {
                 has_failed = true;
             }
             break;
-        }
         }
     }
 
@@ -248,4 +256,4 @@ bool var_res_pass(program_t *program)
     return !has_failed;
 }
 
-#endif /* CBF75423_9343_4603_A1BC_2EB70CE7DFB6 */
+#endif

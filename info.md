@@ -415,3 +415,23 @@ This makes it clear that a0 and a1 are different variables. This will simplify l
 ## Variable Resolution
 
 During the variable resolution pass, we'll construct a map from the user-defined variable names to the unique names we'll use in later stages. We'll process block items in order, checking for errors and replacing variable names as we go. When we encounter a variable declaration, we'll add a new entry mapping that variable name to a unique name that we'll generate. Then, we we seen an expression that uses a variable, we'll replace the variable name with the corresponding unique name from the map.
+
+# Using Variables in their own Initializers
+
+Because we update the variable map before processing the initializer, it will happily process an initializer that uses the same variable it initializes.
+
+Take this example:
+
+```c
+int foo = foo + 1;
+```
+
+When we process the initializer, `foo + 1`, the variable `foo` is already in the map, so the variable resolution pass won't complain. This is consistent with the C standard; a variable really is in scope it's own initializer. Still, this declaration isn't exactly legal. It will result in undefined behavior, because `foo` is uninitialized when it's used in `foo + 1`. (Remember that compilers don't need to detect undefined behavior, so it's okay not to report an error here.)
+
+In other cases, using a variable in it's own initializer makes sense. For example:
+
+```c
+unsigned int foo = sizeof(foo);
+```
+
+We're still using `foo` before initializing it, but we consider only `foo`'s size, not it's value. Annex J of the C standard says we get undefined behavior, when "an lvalue ... is used in a context *that requires the value of the designated object, but the object is uninitialized* (emphasis added). Since `sizeof` doesn't require `foo`'s value, there is no undefined behavior in this declaration.
