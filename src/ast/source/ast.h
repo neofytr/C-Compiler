@@ -45,7 +45,9 @@ typedef enum expression_type_e
 
 typedef enum statement_type_e
 {
-    STMT_RETURN
+    STMT_RETURN,
+    STMT_EXPR,
+    STMT_NULL,
 } statement_type_t;
 
 /**
