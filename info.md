@@ -326,3 +326,92 @@ while (*s++ != '\0')
 In this example, the while loop finds the end of a null-terminated string by iterating over each character until it reaches the null byte. The loop body doesn't need to do anything, because all the work happens in the controlling expression, but omitting the loop body completely would be syntactically invalid. Instead, we can use the null statement.
 
 Null statements don't really have anything to do with local variables, but we'll implement them here because they're technically a kind of expression statement.
+
+# Semantic Analysis
+
+A program can be syntactically correct but *sematically invalid*; in other words, it might not make sense. For example, a program could assign a value to an expression that isn't assignable:
+
+`2 = a * 3 // Error: can't assign a value to a constant`
+
+Or it could declare the same variable twice in the same scope:
+
+```c
+int a = 3;
+int a; // error: a has already been declared
+```
+
+Or it could try to use a variable before it's been declared.
+
+```c
+int main(void)
+{
+    a = 4; // error: a has not been declared yet
+    return a;
+}
+```
+
+All of these examples are valid syntax, but you should get an error if you try to compile them. The semantic analysis stage detects this kind of error. This stage will eventually include several different passes that validate different aspects of the program. First, we'll add out first semantic analysis pass, *variable resolution*.
+
+The variable resolution pass will track which variables are in scope throughout the program and *resolve* each reference to a variable by finding the corresponding declaration. It will report an error if a program declares the same variable more than once or uses a variable that hasn't been declared. It will also rename each local variable with a globally unique identifier.
+
+For example, it might convert the program:
+
+```c
+int main(void)
+{
+    int a = 4;
+    int b = a + 1;
+    a = b - 5;
+    return a + b;
+}
+```
+
+into something like this:
+
+```c
+int main(void)
+{
+    int a0 = 4;
+    int b1 = a0 + 1;
+    a0 = b1 - 5;
+    return a0+ b1;
+}
+```
+
+(Of course, this pass actually transforms ASTs rather than source files)
+
+This transformation may not seem too helpful - the variable names a and b were already unique - but it will be essential once we introduce multiple variable scopes, because different variables in different scopes can have the same name. For example, we might transform the program:
+
+```c
+int main(void)
+{
+    int a = 2;
+    if (a < 5)
+    {
+        int a = 7;
+        return a;
+    }
+    return a;
+}
+```
+
+into:
+
+```c
+int main(void)
+{
+    int a0 = 2;
+    if (a0 < 5)
+    {
+        int a1 = 7;
+        return a1;
+    }
+    return a0;
+}
+```
+
+This makes it clear that a0 and a1 are different variables. This will simplify later compiler stages.
+
+## Variable Resolution
+
+During the variable resolution pass, we'll construct a map from the user-defined variable names to the unique names we'll use in later stages. We'll process block items in order, checking for errors and replacing variable names as we go. When we encounter a variable declaration, we'll add a new entry mapping that variable name to a unique name that we'll generate. Then, we we seen an expression that uses a variable, we'll replace the variable name with the corresponding unique name from the map.

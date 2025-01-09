@@ -516,11 +516,18 @@ expression_t *parse_factor(parser_t *parser)
         expression->base.parent = NULL;
         expression->expr_type = EXPR_VAR;
 
-        identifier_t *name = strdup(token->value);
+        identifier_t *name = (identifier_t *)allocate(sizeof(identifier_t));
         if (!name)
         {
             return NULL;
         }
+
+        name->base.parent = &(expression->base);
+        name->base.location.column = token->column;
+        name->base.location.line = token->line;
+        name->base.type = NODE_IDENTIFIER;
+
+        name->name = strdup(token->value);
 
         expression->value.var.name = name;
         advance_token(parser);
