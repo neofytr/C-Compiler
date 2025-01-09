@@ -18,6 +18,7 @@ typedef struct variable_t variable_t;
 typedef struct assignment_t assignment_t;
 typedef struct null_expr_t null_expr_t;
 typedef struct declaration_t declaration_t;
+typedef struct block_item_t block_item_t;
 
 typedef enum ast_node_type_e
 {
@@ -137,6 +138,7 @@ struct binary_operator_t
 
 struct declaration_t
 {
+    ast_node_t base;
     identifier_t *name;
     expression_t *init_expr;
     bool has_init_expr;
@@ -199,7 +201,7 @@ struct assignment_t
 struct variable_t
 {
     identifier_t *name;
-}
+};
 
 struct expression_t
 {
@@ -237,11 +239,21 @@ struct statement_t
     } value;
 };
 
-typedef union
+typedef enum
 {
-    statement_t *statement;
-    declaration_t *declaration;
-} block_item_t;
+    BLOCK_STATEMENT,
+    BLOCK_DECLARATION,
+} block_type_t;
+
+struct block_item_t
+{
+    block_type_t type;
+    union
+    {
+        statement_t *statement;
+        declaration_t *declaration;
+    } value;
+};
 
 /**
  * Function definition node
@@ -250,7 +262,8 @@ struct function_def_t
 {
     ast_node_t base;
     identifier_t *name;
-    block_item_t *body;
+    size_t block_count;
+    block_item_t **body;
 };
 
 /**

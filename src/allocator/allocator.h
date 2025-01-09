@@ -3,7 +3,7 @@
 
 #include <stdlib.h>
 
-#include "../../../MemoryManager/mem_alloc.h"
+#include "../../../MemCraft/mem_alloc.h"
 
 typedef void *(*allocator_t)(size_t size);
 typedef void (*deallocator_t)(void *ptr);

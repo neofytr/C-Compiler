@@ -4,6 +4,7 @@
 #include "../lexer/lexer.h"
 #include "../ast/source/ast.h"
 #include "../allocator/allocator.h"
+#include <string.h>
 #include <stdio.h>
 #include <stdbool.h>
 
@@ -576,6 +577,48 @@ statement_t *parse_statement(parser_t *parser)
     return statement;
 }
 
+static void free_block_item(block_item_t *item);
+static void free_function_def(function_def_t *func);
+
+static void free_function_def(function_def_t *func)
+{
+    if (!func)
+        return;
+
+    if (func->name)
+    {
+        deallocate(func->name);
+    }
+
+    if (func->body)
+    {
+        for (size_t i = 0; i < func->block_count; i++)
+        {
+            free_block_item(func->body[i]);
+        }
+        deallocate(func->body);
+    }
+
+    deallocate(func);
+}
+
+static void free_block_item(block_item_t *item)
+{
+    if (!item)
+        return;
+
+    if (item->type == BLOCK_DECLARATION)
+    {
+        deallocate(item->value.declaration);
+    }
+    else
+    {
+        deallocate(item->value.statement);
+    }
+
+    deallocate(item);
+}
+
 function_def_t *parse_function(parser_t *parser)
 {
     token_t *int_token = peek_token(parser);
@@ -594,10 +637,13 @@ function_def_t *parse_function(parser_t *parser)
     function->base.location.line = int_token->line;
     function->base.location.column = int_token->column;
     function->base.parent = NULL;
+    function->body = NULL;
+    function->block_count = 0;
 
     identifier_t *name = parse_identifier(parser);
     if (!name)
     {
+        free_function_def(function);
         return NULL;
     }
     name->base.parent = &(function->base);
@@ -608,19 +654,172 @@ function_def_t *parse_function(parser_t *parser)
         !expect_token(parser, TOKEN_CLOSING_PAREN, "Expected ')' after 'void'") ||
         !expect_token(parser, TOKEN_OPENING_BRACE, "Expected '{' to start function body"))
     {
+        free_function_def(function);
         return NULL;
     }
 
-    statement_t *body = parse_statement(parser);
-    if (!body)
+#define STATEMENT_MIN 256
+
+    size_t capacity = STATEMENT_MIN;
+    block_item_t **stmt_arr = (block_item_t **)allocate(capacity * sizeof(block_item_t *));
+    if (!stmt_arr)
     {
+        free_function_def(function);
         return NULL;
     }
-    body->base.parent = &(function->base);
-    function->body = body;
+
+    size_t counter = 0;
+
+    while (peek_token(parser)->type != TOKEN_CLOSING_BRACE)
+    {
+        if (counter >= capacity)
+        {
+            size_t new_capacity = capacity * 2;
+            block_item_t **new_arr = (block_item_t **)allocate(new_capacity * sizeof(block_item_t *));
+            if (!new_arr)
+            {
+                function->body = stmt_arr;
+                function->block_count = counter;
+                free_function_def(function);
+                return NULL;
+            }
+
+            memcpy(new_arr, stmt_arr, counter * sizeof(block_item_t *));
+            deallocate(stmt_arr);
+            stmt_arr = new_arr;
+            capacity = new_capacity;
+        }
+
+        token_t *curr_tok = peek_token(parser);
+
+        block_item_t *item = (block_item_t *)allocate(sizeof(block_item_t));
+        if (!item)
+        {
+            function->body = stmt_arr;
+            function->block_count = counter;
+            free_function_def(function);
+            return NULL;
+        }
+
+        if (!strcmp(curr_tok->value, "int"))
+        {
+            advance_token(parser);
+
+            declaration_t *dec = (declaration_t *)allocate(sizeof(declaration_t));
+            if (!dec)
+            {
+                deallocate(item);
+                function->body = stmt_arr;
+                function->block_count = counter;
+                free_function_def(function);
+                return NULL;
+            }
+
+            dec->base.parent = &(function->base);
+            dec->base.type = NODE_DECLARATION;
+            dec->base.location.column = curr_tok->column;
+            dec->base.location.line = curr_tok->line;
+            dec->has_init_expr = false;
+            dec->init_expr = NULL;
+
+            curr_tok = peek_token(parser);
+            if (!curr_tok)
+            {
+                deallocate(dec);
+                deallocate(item);
+                function->body = stmt_arr;
+                function->block_count = counter;
+                free_function_def(function);
+                return NULL;
+            }
+
+            identifier_t *var_name = (identifier_t *)allocate(sizeof(identifier_t));
+            if (!var_name)
+            {
+                deallocate(dec);
+                deallocate(item);
+                function->body = stmt_arr;
+                function->block_count = counter;
+                free_function_def(function);
+                return NULL;
+            }
+
+            var_name->base.parent = &(dec->base);
+            var_name->base.type = NODE_IDENTIFIER;
+            var_name->base.location.column = curr_tok->column;
+            var_name->base.location.line = curr_tok->line;
+            var_name->name = strdup(curr_tok->value);
+
+            if (!var_name->name)
+            {
+                deallocate(var_name);
+                deallocate(dec);
+                deallocate(item);
+                function->body = stmt_arr;
+                function->block_count = counter;
+                free_function_def(function);
+                return NULL;
+            }
+
+            dec->name = var_name;
+            advance_token(parser);
+
+            curr_tok = peek_token(parser);
+            if (curr_tok && !strcmp(curr_tok->value, "="))
+            {
+                advance_token(parser);
+                dec->has_init_expr = true;
+                dec->init_expr = parse_expression(parser, 0);
+                if (!dec->init_expr)
+                {
+                    deallocate(dec);
+                    deallocate(item);
+                    function->body = stmt_arr;
+                    function->block_count = counter;
+                    free_function_def(function);
+                    return NULL;
+                }
+            }
+
+            if (!expect_token(parser, TOKEN_SEMICOLON, "Expected ';' after declaration"))
+            {
+                deallocate(dec);
+                deallocate(item);
+                function->body = stmt_arr;
+                function->block_count = counter;
+                free_function_def(function);
+                return NULL;
+            }
+
+            item->type = BLOCK_DECLARATION;
+            item->value.declaration = dec;
+        }
+        else
+        {
+            statement_t *stmt = parse_statement(parser);
+            if (!stmt)
+            {
+                deallocate(item);
+                function->body = stmt_arr;
+                function->block_count = counter;
+                free_function_def(function);
+                return NULL;
+            }
+
+            stmt->base.parent = &(function->base);
+            item->type = BLOCK_STATEMENT;
+            item->value.statement = stmt;
+        }
+
+        stmt_arr[counter++] = item;
+    }
+
+    function->body = stmt_arr;
+    function->block_count = counter;
 
     if (!expect_token(parser, TOKEN_CLOSING_BRACE, "Expected '}' to close function body"))
     {
+        free_function_def(function);
         return NULL;
     }
 
