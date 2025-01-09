@@ -1147,6 +1147,19 @@ ir_instruction_struct_t ir_handle_statement(statement_t *source_statement)
     statement_type_t source_statement_type = source_statement->stmt_type;
     switch (source_statement_type)
     {
+    case STMT_NULL:
+    {
+        return (ir_instruction_struct_t){
+            .instruction_count = 0,
+            .instructions = (void *)2,
+        };
+        break;
+    }
+    case STMT_EXPR:
+    {
+        return ir_handle_expression(source_statement->value.expr);
+        break;
+    }
     case STMT_RETURN:
     {
         // return(val)
@@ -1542,6 +1555,11 @@ ir_function_t *ir_handle_function(function_def_t *source_function)
             if (!stmt_inst.instructions)
             {
                 goto cleanup_and_return;
+            }
+
+            if (stmt_inst.instructions == (void *)2)
+            {
+                continue;
             }
 
             if (curr_index + stmt_inst.instruction_count > current_max_instructions)
