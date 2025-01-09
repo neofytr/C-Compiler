@@ -411,7 +411,7 @@ static expression_t *parse_assignment_expression(parser_t *parser, expression_t 
         return NULL;
     }
 
-    expression_t *expr_assign = (expression_t *)allocate(sizeof(assignment_t));
+    expression_t *expr_assign = (expression_t *)allocate(sizeof(expression_t));
     if (!expr_assign)
     {
         return NULL;
@@ -422,7 +422,7 @@ static expression_t *parse_assignment_expression(parser_t *parser, expression_t 
     expr_assign->expr_type = EXPR_ASSIGN;
     expr_assign->base.type = NODE_EXPRESSION;
 
-    expression_t *rvalue = parse_expression(parser, token_precedence(tok));
+    expression_t *rvalue = parse_expression(parser, PRECEDENCE_ASSIGN);
     if (!rvalue)
     {
         deallocate(expr_assign);
@@ -700,13 +700,19 @@ statement_t *parse_statement(parser_t *parser)
     }
     default:
     {
+        statement->base.type = NODE_STATEMENT;
+        statement->base.location.line = curr_token->line;
+        statement->base.location.column = curr_token->column;
+        statement->base.parent = NULL;
+        statement->stmt_type = STMT_EXPR;
+
         expression_t *expression = parse_expression(parser, MIN_PRECEDENCE);
         if (!expression)
         {
             return NULL;
         }
         expression->base.parent = &(statement->base);
-        statement->value.return_expr = expression;
+        statement->value.expr = expression;
 
         if (!expect_token(parser, TOKEN_SEMICOLON, "Expected ';' after return expression"))
         {
