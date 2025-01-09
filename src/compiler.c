@@ -7,6 +7,7 @@
 #include "./assembly_gen/from_IR/second_pass.h"
 #include "./assembly_gen/from_IR/third_pass.h"
 #include "./parser/parser.h"
+#include "./semantic_analyzer/variable_resolution.h"
 
 /*
 
@@ -79,6 +80,12 @@ int main(int argc, char **argv)
     if (!ast)
     {
         fprintf(stderr, "Error: Parsing failed for file '%s'.\n", input_file);
+        return EXIT_FAILURE;
+    }
+
+    if (!var_res_pass(ast))
+    {
+        fprintf(stderr, "Error: Semantic Analyzer failed\n");
         return EXIT_FAILURE;
     }
 

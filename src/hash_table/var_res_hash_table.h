@@ -5,32 +5,31 @@
 #include <string.h>
 #include "../allocator/allocator.h"
 
-#define NUM_BUCKETS 1024 // should always be a power of two
-#define MAX_IDENTIFIER_LENGTH 256
+#define NUM_BUCKETS_VAR 1024 // should always be a power of two
+#define MAX_IDENTIFIER_LENGTH_VAR 256
 
-typedef struct hash_node
+typedef struct var_node
 {
-    char var[MAX_IDENTIFIER_LENGTH];
-    char unique_name[MAX_IDENTIFIER_LENGTH];
-    struct hash_node *next_node;
-} hash_node_t;
+    char var[MAX_IDENTIFIER_LENGTH_VAR];
+    char unique_name[MAX_IDENTIFIER_LENGTH_VAR];
+    struct var_node *next_node;
+} var_node_t;
 
 typedef struct
 {
-    hash_node_t *buckets[NUM_BUCKETS];
+    var_node_t *buckets[NUM_BUCKETS_VAR];
     size_t total_entries;
-} hash_table_t;
+} var_table_t;
 
-hash_table_t *create_hash_table();
-void destroy_hash_table(hash_table_t *table);
-bool hash_table_insert(hash_table_t *table, const char *identifier, int offset);
-hash_node_t *hash_table_search(hash_table_t *table, const char *identifier);
-bool hash_table_delete(hash_table_t *table, const char *identifier);
-void hash_table_clear(hash_table_t *table);
-size_t hash_table_size(hash_table_t *table);
-void hash_table_print_stats(hash_table_t *table);
+var_table_t *create_var_table();
+void destroy_var_table(var_table_t *table);
+bool var_table_insert(var_table_t *table, const char *var, const char *unique_name);
+var_node_t *var_table_search(var_table_t *table, const char *var);
+bool var_table_delete(var_table_t *table, const char *var);
+void var_table_clear(var_table_t *table);
+size_t var_table_size(var_table_t *table);
 
-size_t get_hash(const char *identifier)
+size_t get_var_hash(const char *identifier)
 {
     unsigned long hash = 5381;
     int c;
@@ -40,12 +39,12 @@ size_t get_hash(const char *identifier)
         hash = ((hash << 5) + hash) + c;
     }
 
-    return hash % NUM_BUCKETS;
+    return hash % NUM_BUCKETS_VAR;
 }
 
-hash_table_t *create_hash_table()
+var_table_t *create_var_table()
 {
-    hash_table_t *table = (hash_table_t *)allocate(sizeof(hash_table_t));
+    var_table_t *table = (var_table_t *)allocate(sizeof(var_table_t));
     if (!table)
     {
         return NULL;
@@ -57,42 +56,42 @@ hash_table_t *create_hash_table()
     return table;
 }
 
-void destroy_hash_table(hash_table_t *table)
+void destroy_var_table(var_table_t *table)
 {
     if (!table)
     {
         return;
     }
 
-    hash_table_clear(table);
+    var_table_clear(table);
 
     deallocate(table);
 }
 
-bool hash_table_insert(hash_table_t *table, const char *var, const char *unique_var)
+bool var_table_insert(var_table_t *table, const char *var, const char *unique_var)
 {
-    if (!table || !var || strlen(var) >= MAX_IDENTIFIER_LENGTH)
+    if (!table || !var || strlen(var) >= MAX_IDENTIFIER_LENGTH_VAR)
     {
         return false;
     }
 
-    if (hash_table_search(table, var))
+    if (var_table_search(table, var))
     {
         return false;
     }
 
-    size_t hash = get_hash(var);
+    size_t hash = get_var_hash(var);
 
-    hash_node_t *new_node = (hash_node_t *)allocate(sizeof(hash_node_t));
+    var_node_t *new_node = (var_node_t *)allocate(sizeof(var_node_t));
     if (!new_node)
     {
         return false;
     }
 
-    strncpy(new_node->var, var, MAX_IDENTIFIER_LENGTH - 1);
-    new_node->var[MAX_IDENTIFIER_LENGTH - 1] = '\0';
-    strncpy(new_node->unique_name, unique_var, MAX_IDENTIFIER_LENGTH - 1);
-    new_node->unique_name[MAX_IDENTIFIER_LENGTH - 1] = '\0';
+    strncpy(new_node->var, var, MAX_IDENTIFIER_LENGTH_VAR - 1);
+    new_node->var[MAX_IDENTIFIER_LENGTH_VAR - 1] = '\0';
+    strncpy(new_node->unique_name, unique_var, MAX_IDENTIFIER_LENGTH_VAR - 1);
+    new_node->unique_name[MAX_IDENTIFIER_LENGTH_VAR - 1] = '\0';
 
     new_node->next_node = table->buckets[hash];
     table->buckets[hash] = new_node;
@@ -102,15 +101,15 @@ bool hash_table_insert(hash_table_t *table, const char *var, const char *unique_
     return true;
 }
 
-hash_node_t *hash_table_search(hash_table_t *table, const char *var)
+var_node_t *var_table_search(var_table_t *table, const char *var)
 {
     if (!table || !var)
     {
         return NULL;
     }
 
-    size_t hash = get_hash(var);
-    hash_node_t *current = table->buckets[hash];
+    size_t hash = get_var_hash(var);
+    var_node_t *current = table->buckets[hash];
 
     while (current)
     {
@@ -124,16 +123,16 @@ hash_node_t *hash_table_search(hash_table_t *table, const char *var)
     return NULL;
 }
 
-bool hash_table_delete(hash_table_t *table, const char *var)
+bool var_table_delete(var_table_t *table, const char *var)
 {
     if (!table || !var)
     {
         return false;
     }
 
-    size_t hash = get_hash(var);
-    hash_node_t *current = table->buckets[hash];
-    hash_node_t *prev = NULL;
+    size_t hash = get_var_hash(var);
+    var_node_t *current = table->buckets[hash];
+    var_node_t *prev = NULL;
 
     while (current)
     {
@@ -161,19 +160,19 @@ bool hash_table_delete(hash_table_t *table, const char *var)
     return false;
 }
 
-void hash_table_clear(hash_table_t *table)
+void var_table_clear(var_table_t *table)
 {
     if (!table)
     {
         return;
     }
 
-    for (size_t i = 0; i < NUM_BUCKETS; i++)
+    for (size_t i = 0; i < NUM_BUCKETS_VAR; i++)
     {
-        hash_node_t *current = table->buckets[i];
+        var_node_t *current = table->buckets[i];
         while (current)
         {
-            hash_node_t *temp = current;
+            var_node_t *temp = current;
             current = current->next_node;
             deallocate(temp);
         }
@@ -183,48 +182,12 @@ void hash_table_clear(hash_table_t *table)
     table->total_entries = 0;
 }
 
-size_t hash_table_size(hash_table_t *table)
+size_t var_table_size(var_table_t *table)
 {
     return table ? table->total_entries : 0;
 }
 
-void hash_table_print_stats(hash_table_t *table)
-{
-    if (!table)
-    {
-        return;
-    }
-
-    size_t max_chain_length = 0;
-    size_t non_empty_buckets = 0;
-
-    for (size_t i = 0; i < NUM_BUCKETS; i++)
-    {
-        size_t current_chain_length = 0;
-        hash_node_t *current = table->buckets[i];
-
-        while (current)
-        {
-            current_chain_length++;
-            current = current->next_node;
-        }
-
-        if (current_chain_length > 0)
-        {
-            non_empty_buckets++;
-        }
-
-        if (current_chain_length > max_chain_length)
-        {
-            max_chain_length = current_chain_length;
-        }
-    }
-
-    printf("Hash Table Statistics:\n");
-    printf("Total Entries: %zu\n", table->total_entries);
-    printf("Number of Buckets: %d\n", NUM_BUCKETS);
-    printf("Non-empty Buckets: %zu\n", non_empty_buckets);
-    printf("Max Chain Length: %zu\n", max_chain_length);
-}
+#undef NUM_BUCKETS_VAR
+#undef MAX_IDENTIFIER_LENGTH_VAR
 
 #endif /* B9B56047_F79C_4390_97DE_477FC9D07A9D */
