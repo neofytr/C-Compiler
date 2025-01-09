@@ -156,44 +156,44 @@ bool asm_fix_instruction(asm_program_t *asm_program)
             asm_instruction_mov_t *mov = &instruction->instr.mov;
             if (mov->src->type == OPERAND_STACK && mov->dst->type == OPERAND_STACK)
             {
-                asm_operand_t *r10_src_operand = (asm_operand_t *)allocate(sizeof(asm_operand_t));
-                asm_operand_t *r10_dst_operand = (asm_operand_t *)allocate(sizeof(asm_operand_t));
-                if (!r10_src_operand || !r10_dst_operand)
+                // Create temporary register operands
+                asm_operand_t *r10_operand = (asm_operand_t *)allocate(sizeof(asm_operand_t));
+                if (!r10_operand)
                     return false;
 
-                r10_src_operand->base.type = ASM_NODE_OPERAND;
-                r10_src_operand->base.parent = &instruction->base;
-                r10_src_operand->type = OPERAND_REGISTER;
-                r10_src_operand->operand.reg.reg_no = ASM_REG_R10;
-
-                r10_dst_operand->base.type = ASM_NODE_OPERAND;
-                r10_dst_operand->base.parent = &instruction->base;
-                r10_dst_operand->type = OPERAND_REGISTER;
-                r10_dst_operand->operand.reg.reg_no = ASM_REG_R10;
+                // Initialize the temporary register operand
+                r10_operand->base.type = ASM_NODE_OPERAND;
+                r10_operand->base.parent = &instruction->base;
+                r10_operand->type = OPERAND_REGISTER;
+                r10_operand->operand.reg.reg_no = ASM_REG_R10;
 
                 asm_instruction_mov_t first_mov = {
                     .src = mov->src,
-                    .dst = r10_src_operand};
-
-                asm_instruction_mov_t second_mov = {
-                    .src = r10_dst_operand,
-                    .dst = mov->dst};
-
-                instruction->instr.mov = first_mov;
+                    .dst = r10_operand};
 
                 asm_instruction_t *second_mov_instruction = (asm_instruction_t *)allocate(sizeof(asm_instruction_t));
                 if (!second_mov_instruction)
+                {
+                    deallocate(r10_operand);
                     return false;
+                }
 
                 second_mov_instruction->base.type = ASM_NODE_INSTRUCTION;
                 second_mov_instruction->base.parent = instruction->base.parent;
                 second_mov_instruction->type = INSTRUCTION_MOV;
-                second_mov_instruction->instr.mov = second_mov;
+                second_mov_instruction->instr.mov.src = r10_operand;
+                second_mov_instruction->instr.mov.dst = mov->dst;
+
+                instruction->instr.mov = first_mov;
 
                 asm_instruction_t **new_instructions = (asm_instruction_t **)allocate(
                     sizeof(asm_instruction_t *) * (function->instruction_count + 1));
                 if (!new_instructions)
+                {
+                    deallocate(r10_operand);
+                    deallocate(second_mov_instruction);
                     return false;
+                }
 
                 for (size_t j = 0; j <= i; j++)
                 {
@@ -287,6 +287,7 @@ bool asm_fix_instruction(asm_program_t *asm_program)
                 if (binary_instruction->first_operand->type == OPERAND_STACK &&
                     binary_instruction->second_operand->type == OPERAND_STACK)
                 {
+
                     asm_operand_t *r10_operand = (asm_operand_t *)allocate(sizeof(asm_operand_t));
                     if (!r10_operand)
                         return false;
@@ -298,7 +299,160 @@ bool asm_fix_instruction(asm_program_t *asm_program)
 
                     asm_instruction_t *first_mov = (asm_instruction_t *)allocate(sizeof(asm_instruction_t));
                     if (!first_mov)
+                    {
+                        deallocate(r10_operand);
                         return false;
+                    }
+
+                    first_mov->base.type = ASM_NODE_INSTRUCTION;
+                    first_mov->base.parent = instruction->base.parent;
+                    first_mov->type = INSTRUCTION_MOV;
+                    first_mov->instr.mov.src = binary_instruction->first_operand;
+                    first_mov->instr.mov.dst = r10_operand;
+
+                    asm_instruction_t *result_mov = (asm_instruction_t *)allocate(sizeof(asm_instruction_t));
+                    if (!result_mov)
+                    {
+                        deallocate(r10_operand);
+                        deallocate(first_mov);
+                        return false;
+                    }
+
+                    result_mov->base.type = ASM_NODE_INSTRUCTION;
+                    result_mov->base.parent = instruction->base.parent;
+                    result_mov->type = INSTRUCTION_MOV;
+                    result_mov->instr.mov.src = r10_operand;
+                    result_mov->instr.mov.dst = binary_instruction->first_operand;
+
+                    binary_instruction->first_operand = r10_operand;
+
+                    asm_instruction_t **new_instructions = (asm_instruction_t **)allocate(
+                        sizeof(asm_instruction_t *) * (function->instruction_count + 2));
+                    if (!new_instructions)
+                    {
+                        deallocate(r10_operand);
+                        deallocate(first_mov);
+                        deallocate(result_mov);
+                        return false;
+                    }
+
+                    for (size_t j = 0; j < i; j++)
+                    {
+                        new_instructions[j] = function->instructions[j];
+                    }
+
+                    new_instructions[i] = first_mov;
+                    new_instructions[i + 1] = instruction;
+                    new_instructions[i + 2] = result_mov;
+
+                    for (size_t j = i + 1; j < function->instruction_count; j++)
+                    {
+                        new_instructions[j + 2] = function->instructions[j];
+                    }
+
+                    deallocate(function->instructions);
+                    function->instructions = new_instructions;
+                    function->instruction_count += 2;
+                    i += 2;
+                }
+                break;
+            }
+            case ASM_BINARY_MULT:
+            {
+                if (binary_instruction->first_operand->type == OPERAND_STACK ||
+                    binary_instruction->second_operand->type == OPERAND_STACK)
+                {
+
+                    asm_operand_t *r11_operand = (asm_operand_t *)allocate(sizeof(asm_operand_t));
+                    if (!r11_operand)
+                        return false;
+
+                    r11_operand->base.type = ASM_NODE_OPERAND;
+                    r11_operand->base.parent = &instruction->base;
+                    r11_operand->type = OPERAND_REGISTER;
+                    r11_operand->operand.reg.reg_no = ASM_REG_R11;
+
+                    asm_instruction_t *first_mov = (asm_instruction_t *)allocate(sizeof(asm_instruction_t));
+                    if (!first_mov)
+                    {
+                        deallocate(r11_operand);
+                        return false;
+                    }
+
+                    first_mov->base.type = ASM_NODE_INSTRUCTION;
+                    first_mov->base.parent = instruction->base.parent;
+                    first_mov->type = INSTRUCTION_MOV;
+                    first_mov->instr.mov.src = binary_instruction->first_operand;
+                    first_mov->instr.mov.dst = r11_operand;
+
+                    binary_instruction->first_operand = r11_operand;
+
+                    asm_instruction_t *result_mov = (asm_instruction_t *)allocate(sizeof(asm_instruction_t));
+                    if (!result_mov)
+                    {
+                        deallocate(r11_operand);
+                        deallocate(first_mov);
+                        return false;
+                    }
+
+                    result_mov->base.type = ASM_NODE_INSTRUCTION;
+                    result_mov->base.parent = instruction->base.parent;
+                    result_mov->type = INSTRUCTION_MOV;
+                    result_mov->instr.mov.src = r11_operand;
+                    result_mov->instr.mov.dst = first_mov->instr.mov.src; // Move to original destination
+
+                    asm_instruction_t **new_instructions = (asm_instruction_t **)allocate(
+                        sizeof(asm_instruction_t *) * (function->instruction_count + 2));
+                    if (!new_instructions)
+                    {
+                        deallocate(r11_operand);
+                        deallocate(first_mov);
+                        deallocate(result_mov);
+                        return false;
+                    }
+
+                    for (size_t j = 0; j < i; j++)
+                    {
+                        new_instructions[j] = function->instructions[j];
+                    }
+
+                    new_instructions[i] = first_mov;
+                    new_instructions[i + 1] = instruction;
+                    new_instructions[i + 2] = result_mov;
+
+                    for (size_t j = i + 1; j < function->instruction_count; j++)
+                    {
+                        new_instructions[j + 2] = function->instructions[j];
+                    }
+
+                    deallocate(function->instructions);
+                    function->instructions = new_instructions;
+                    function->instruction_count += 2;
+                    i += 2;
+                }
+                break;
+            }
+            case ASM_BINARY_BITWISE_SHIFT_LEFT:
+            case ASM_BINARY_BITWISE_SHIFT_RIGHT:
+            {
+                // Handle first operand in memory
+                if (binary_instruction->first_operand->type == OPERAND_STACK)
+                {
+                    asm_operand_t *r10_operand = (asm_operand_t *)allocate(sizeof(asm_operand_t));
+                    if (!r10_operand)
+                        return false;
+
+                    r10_operand->base.type = ASM_NODE_OPERAND;
+                    r10_operand->base.parent = &instruction->base;
+                    r10_operand->type = OPERAND_REGISTER;
+                    r10_operand->operand.reg.reg_no = ASM_REG_R10;
+
+                    asm_instruction_t *first_mov = (asm_instruction_t *)allocate(sizeof(asm_instruction_t));
+                    if (!first_mov)
+                    {
+                        deallocate(r10_operand);
+                        return false;
+                    }
 
                     first_mov->base.type = ASM_NODE_INSTRUCTION;
                     first_mov->base.parent = instruction->base.parent;
@@ -308,10 +462,29 @@ bool asm_fix_instruction(asm_program_t *asm_program)
 
                     binary_instruction->first_operand = r10_operand;
 
-                    asm_instruction_t **new_instructions = (asm_instruction_t **)allocate(
-                        sizeof(asm_instruction_t *) * (function->instruction_count + 1));
-                    if (!new_instructions)
+                    asm_instruction_t *result_mov = (asm_instruction_t *)allocate(sizeof(asm_instruction_t));
+                    if (!result_mov)
+                    {
+                        deallocate(r10_operand);
+                        deallocate(first_mov);
                         return false;
+                    }
+
+                    result_mov->base.type = ASM_NODE_INSTRUCTION;
+                    result_mov->base.parent = instruction->base.parent;
+                    result_mov->type = INSTRUCTION_MOV;
+                    result_mov->instr.mov.src = r10_operand;
+                    result_mov->instr.mov.dst = first_mov->instr.mov.src;
+
+                    asm_instruction_t **new_instructions = (asm_instruction_t **)allocate(
+                        sizeof(asm_instruction_t *) * (function->instruction_count + 2));
+                    if (!new_instructions)
+                    {
+                        deallocate(r10_operand);
+                        deallocate(first_mov);
+                        deallocate(result_mov);
+                        return false;
+                    }
 
                     for (size_t j = 0; j < i; j++)
                     {
@@ -319,6 +492,62 @@ bool asm_fix_instruction(asm_program_t *asm_program)
                     }
 
                     new_instructions[i] = first_mov;
+                    new_instructions[i + 1] = instruction;
+                    new_instructions[i + 2] = result_mov;
+
+                    for (size_t j = i + 1; j < function->instruction_count; j++)
+                    {
+                        new_instructions[j + 2] = function->instructions[j];
+                    }
+
+                    deallocate(function->instructions);
+                    function->instructions = new_instructions;
+                    function->instruction_count += 2;
+                    i += 2;
+                }
+
+                // Handle shift count in memory (needs to be in CL)
+                if (binary_instruction->second_operand->type == OPERAND_STACK)
+                {
+                    asm_operand_t *cl_operand = (asm_operand_t *)allocate(sizeof(asm_operand_t));
+                    if (!cl_operand)
+                        return false;
+
+                    cl_operand->base.type = ASM_NODE_OPERAND;
+                    cl_operand->base.parent = &instruction->base;
+                    cl_operand->type = OPERAND_REGISTER;
+                    cl_operand->operand.reg.reg_no = ASM_REG_RCX;
+
+                    asm_instruction_t *mov_to_cl = (asm_instruction_t *)allocate(sizeof(asm_instruction_t));
+                    if (!mov_to_cl)
+                    {
+                        deallocate(cl_operand);
+                        return false;
+                    }
+
+                    mov_to_cl->base.type = ASM_NODE_INSTRUCTION;
+                    mov_to_cl->base.parent = instruction->base.parent;
+                    mov_to_cl->type = INSTRUCTION_MOV;
+                    mov_to_cl->instr.mov.src = binary_instruction->second_operand;
+                    mov_to_cl->instr.mov.dst = cl_operand;
+
+                    binary_instruction->second_operand = cl_operand;
+
+                    asm_instruction_t **new_instructions = (asm_instruction_t **)allocate(
+                        sizeof(asm_instruction_t *) * (function->instruction_count + 1));
+                    if (!new_instructions)
+                    {
+                        deallocate(cl_operand);
+                        deallocate(mov_to_cl);
+                        return false;
+                    }
+
+                    for (size_t j = 0; j < i; j++)
+                    {
+                        new_instructions[j] = function->instructions[j];
+                    }
+
+                    new_instructions[i] = mov_to_cl;
                     new_instructions[i + 1] = instruction;
 
                     for (size_t j = i + 1; j < function->instruction_count; j++)
@@ -333,126 +562,8 @@ bool asm_fix_instruction(asm_program_t *asm_program)
                 }
                 break;
             }
-            case ASM_BINARY_MULT:
-            {
-                asm_instruction_binary_t *imul_instruction = &instruction->instr.binary;
-
-                if (imul_instruction->first_operand->type == OPERAND_STACK)
-                {
-                    asm_operand_t *r11_operand = (asm_operand_t *)allocate(sizeof(asm_operand_t));
-                    if (!r11_operand)
-                        return false;
-
-                    r11_operand->base.type = ASM_NODE_OPERAND;
-                    r11_operand->base.parent = &instruction->base;
-                    r11_operand->type = OPERAND_REGISTER;
-                    r11_operand->operand.reg.reg_no = ASM_REG_R11;
-
-                    // 1. Move memory to r11
-                    // 2. IMUL with r11 as destination
-                    // 3. Move r11 back to memory
-
-                    asm_instruction_t *first_mov = (asm_instruction_t *)allocate(sizeof(asm_instruction_t));
-                    if (!first_mov)
-                        return false;
-
-                    first_mov->base.type = ASM_NODE_INSTRUCTION;
-                    first_mov->base.parent = instruction->base.parent;
-                    first_mov->type = INSTRUCTION_MOV;
-                    first_mov->instr.mov.src = imul_instruction->first_operand;
-                    first_mov->instr.mov.dst = r11_operand;
-
-                    imul_instruction->first_operand = r11_operand;
-
-                    asm_instruction_t *third_mov = (asm_instruction_t *)allocate(sizeof(asm_instruction_t));
-                    if (!third_mov)
-                        return false;
-
-                    third_mov->base.type = ASM_NODE_INSTRUCTION;
-                    third_mov->base.parent = instruction->base.parent;
-                    third_mov->type = INSTRUCTION_MOV;
-                    third_mov->instr.mov.src = r11_operand;
-                    third_mov->instr.mov.dst = first_mov->instr.mov.src;
-
-                    asm_instruction_t **new_instructions = (asm_instruction_t **)allocate(
-                        sizeof(asm_instruction_t *) * (function->instruction_count + 2));
-                    if (!new_instructions)
-                        return false;
-
-                    for (size_t j = 0; j < i; j++)
-                    {
-                        new_instructions[j] = function->instructions[j];
-                    }
-
-                    new_instructions[i] = first_mov;
-                    new_instructions[i + 1] = instruction;
-                    new_instructions[i + 2] = third_mov;
-
-                    for (size_t j = i + 1; j < function->instruction_count; j++)
-                    {
-                        new_instructions[j + 2] = function->instructions[j];
-                    }
-
-                    deallocate(function->instructions);
-                    function->instructions = new_instructions;
-                    function->instruction_count += 2;
-                    i++;
-                }
-                break;
-            }
-            case ASM_BINARY_BITWISE_SHIFT_LEFT:
-            case ASM_BINARY_BITWISE_SHIFT_RIGHT:
-            {
-                asm_operand_t *cl_operand = (asm_operand_t *)allocate(sizeof(asm_operand_t));
-                if (!cl_operand)
-                    return false;
-
-                cl_operand->base.type = ASM_NODE_OPERAND;
-                cl_operand->base.parent = &instruction->base;
-                cl_operand->type = OPERAND_REGISTER;
-                cl_operand->operand.reg.reg_no = ASM_REG_RCX;
-
-                asm_instruction_t *mov_to_cl = (asm_instruction_t *)allocate(sizeof(asm_instruction_t));
-                if (!mov_to_cl)
-                    return false;
-
-                mov_to_cl->base.type = ASM_NODE_INSTRUCTION;
-                mov_to_cl->base.parent = instruction->base.parent;
-                mov_to_cl->type = INSTRUCTION_MOV;
-                mov_to_cl->instr.mov.src = binary_instruction->second_operand;
-                mov_to_cl->instr.mov.dst = cl_operand;
-
-                binary_instruction->second_operand = cl_operand;
-
-                asm_instruction_t **new_instructions = (asm_instruction_t **)allocate(
-                    sizeof(asm_instruction_t *) * (function->instruction_count + 1));
-                if (!new_instructions)
-                    return false;
-
-                for (size_t j = 0; j < i; j++)
-                {
-                    new_instructions[j] = function->instructions[j];
-                }
-
-                new_instructions[i] = mov_to_cl;
-                new_instructions[i + 1] = instruction;
-
-                for (size_t j = i + 1; j < function->instruction_count; j++)
-                {
-                    new_instructions[j + 1] = function->instructions[j];
-                }
-
-                deallocate(function->instructions);
-                function->instructions = new_instructions;
-                function->instruction_count++;
-                i++;
-
-                break;
-            }
             default:
-            {
                 break;
-            }
             }
         }
 

@@ -1,6 +1,7 @@
 int main(void)
 {
-    int a = 10;
-    int b = a + 5;
-    return b;
+    int sum = 0;
+    int i = 9;
+    sum = sum + i * 2;
+    return sum;
 }

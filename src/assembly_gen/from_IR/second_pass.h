@@ -120,7 +120,6 @@ bool replace_pseudoregisters(asm_program_t *asm_program)
                 destroy_hash_table(hash_table);
                 return false;
             }
-
             break;
         }
         case INSTRUCTION_MOV:
@@ -144,12 +143,12 @@ bool replace_pseudoregisters(asm_program_t *asm_program)
                 return false;
             }
 
-            if (!replace_pseudoregs_operand(asm_mov_dst, hash_table) || !replace_pseudoregs_operand(asm_mov_src, hash_table))
+            if (!replace_pseudoregs_operand(asm_mov_dst, hash_table) ||
+                !replace_pseudoregs_operand(asm_mov_src, hash_table))
             {
                 destroy_hash_table(hash_table);
                 return false;
             }
-
             break;
         }
         case INSTRUCTION_BINARY:
@@ -173,12 +172,12 @@ bool replace_pseudoregisters(asm_program_t *asm_program)
                 return false;
             }
 
-            if (!replace_pseudoregs_operand(asm_binary_first, hash_table) || !replace_pseudoregs_operand(asm_binary_second, hash_table))
+            if (!replace_pseudoregs_operand(asm_binary_first, hash_table) ||
+                !replace_pseudoregs_operand(asm_binary_second, hash_table))
             {
                 destroy_hash_table(hash_table);
                 return false;
             }
-
             break;
         }
         case INSTRUCTION_CMP:
@@ -199,12 +198,12 @@ bool replace_pseudoregisters(asm_program_t *asm_program)
                 return false;
             }
 
-            if (!replace_pseudoregs_operand(first_operand, hash_table) || !replace_pseudoregs_operand(second_operand, hash_table))
+            if (!replace_pseudoregs_operand(first_operand, hash_table) ||
+                !replace_pseudoregs_operand(second_operand, hash_table))
             {
                 destroy_hash_table(hash_table);
                 return false;
             }
-
             break;
         }
         case INSTRUCTION_SETCC:
@@ -228,7 +227,6 @@ bool replace_pseudoregisters(asm_program_t *asm_program)
                 destroy_hash_table(hash_table);
                 return false;
             }
-
             break;
         }
         case INSTRUCTION_IDIV:
@@ -252,10 +250,12 @@ bool replace_pseudoregisters(asm_program_t *asm_program)
                 destroy_hash_table(hash_table);
                 return false;
             }
+            break; // Added missing break statement
         }
         }
     }
 
+    destroy_hash_table(hash_table); // Added cleanup for success path
     return true;
 }
 
