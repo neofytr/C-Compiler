@@ -337,6 +337,7 @@ ir_instruction_struct_t ir_handle_expression(expression_t *source_expression)
         }
 
         dest->value.variable.identifier = iden_var;
+        dest->type = IR_VAL_VARIABLE;
 
         copy_zero->instruction.copy_instr.destination = dest;
 
