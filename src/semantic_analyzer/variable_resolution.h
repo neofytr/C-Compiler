@@ -23,6 +23,7 @@ char *make_unique_name(const char *name)
 
     if (snprintf(new_name, 256, "%s.%zu", name, unique_name_count++) < 0)
     {
+        deallocate(new_name);
         return NULL;
     }
 
@@ -52,13 +53,13 @@ bool resolve_declaration(declaration_t *declaration, var_table_t *var_table)
     if (!searched_node)
     {
         char *new_unique_name = make_unique_name(var_name);
-        if (!var_table_insert(var_table, var_name, new_unique_name))
+        if (!new_unique_name || !var_table_insert(var_table, var_name, new_unique_name))
         {
             deallocate(new_unique_name);
             return false;
         }
-
         deallocate(new_unique_name);
+
         if (declaration->has_init_expr)
         {
             if (!declaration->init_expr)
@@ -67,14 +68,12 @@ bool resolve_declaration(declaration_t *declaration, var_table_t *var_table)
             }
             return resolve_expression(declaration->init_expr, var_table);
         }
-    }
-    else
-    {
-        fprintf(stderr, "Error -> Line: %zu Column: %zu -> Redeclaration of the variable %s\n", var->base.location.line, var->base.location.column, var_name);
-        return false;
+        return true;
     }
 
-    return true;
+    fprintf(stderr, "Error -> Line: %zu Column: %zu -> Redeclaration of the variable %s\n",
+            var->base.location.line, var->base.location.column, var_name);
+    return false;
 }
 
 bool resolve_expression(expression_t *expression, var_table_t *var_table)
@@ -93,47 +92,40 @@ bool resolve_expression(expression_t *expression, var_table_t *var_table)
     {
         assignment_t assign = expression->value.assign;
         expression_t *lvalue = assign.lvalue;
-        if (!lvalue)
+        if (!lvalue || lvalue->expr_type != EXPR_VAR)
         {
-            return false;
-        }
-
-        if (lvalue->expr_type != EXPR_VAR)
-        {
-            fprintf(stderr, "Error -> Line: %zu Column: %zu -> Unexpected lvalue, Expected a variable\n", expression->base.location.line, expression->base.location.column);
+            fprintf(stderr, "Error -> Line: %zu Column: %zu -> Unexpected lvalue, Expected a variable\n",
+                    expression->base.location.line, expression->base.location.column);
             return false;
         }
 
         variable_t var = lvalue->value.var;
         identifier_t *iden = var.name;
-        if (!iden)
+        if (!iden || !iden->name)
         {
             return false;
         }
 
-        char *name = iden->name;
-        if (!name)
-        {
-            return false;
-        }
-
-        var_node_t *searched_node = var_table_search(var_table, name);
+        var_node_t *searched_node = var_table_search(var_table, iden->name);
         if (!searched_node)
         {
-            fprintf(stderr, "Error -> Line: %zu Column: %zu -> Undeclared Variable %s\n", expression->base.location.line, expression->base.location.column, name);
-            deallocate(name);
+            fprintf(stderr, "Error -> Line: %zu Column: %zu -> Undeclared Variable %s\n",
+                    expression->base.location.line, expression->base.location.column, iden->name);
             return false;
         }
 
-        deallocate(name);
+        char *old_name = iden->name;
         iden->name = strdup(searched_node->unique_name);
+        deallocate(old_name);
+
         return resolve_expression(assign.rvalue, var_table);
     }
 
     case EXPR_BINARY:
     {
         binary_t binary = expression->value.binary;
-        return resolve_expression(binary.left_expr, var_table) && resolve_expression(binary.right_expr, var_table);
+        return resolve_expression(binary.left_expr, var_table) &&
+               resolve_expression(binary.right_expr, var_table);
     }
 
     case EXPR_CONSTANT_INT:
@@ -149,26 +141,23 @@ bool resolve_expression(expression_t *expression, var_table_t *var_table)
     {
         variable_t var = expression->value.var;
         identifier_t *iden = var.name;
-        if (!iden)
-        {
-            return false;
-        }
-        char *name = iden->name;
-        if (!name)
+        if (!iden || !iden->name)
         {
             return false;
         }
 
-        var_node_t *searched_node = var_table_search(var_table, name);
+        var_node_t *searched_node = var_table_search(var_table, iden->name);
         if (!searched_node)
         {
-            fprintf(stderr, "Error -> Line: %zu Column: %zu -> %s not declared in the current scope\n", iden->base.location.line, iden->base.location.column, name);
-            deallocate(name);
+            fprintf(stderr, "Error -> Line: %zu Column: %zu -> %s not declared in the current scope\n",
+                    iden->base.location.line, iden->base.location.column, iden->name);
             return false;
         }
 
-        deallocate(name);
+        char *old_name = iden->name;
         iden->name = strdup(searched_node->unique_name);
+        deallocate(old_name);
+
         return true;
     }
 

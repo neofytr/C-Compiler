@@ -281,7 +281,7 @@ ir_instruction_struct_t ir_handle_expression(expression_t *source_expression)
                 init_expr_val->type = IR_VAL_CONSTANT_INT;
                 init_expr_val->value.constant_int = init_expr->value.constant_int;
             }
-            else
+            else if (init_expr_ins.instructions == (void *)1)
             {
                 init_expr_val = allocate(sizeof(ir_value_t));
                 init_expr_val->base.type = IR_NODE_VALUE;
@@ -459,7 +459,7 @@ ir_instruction_struct_t ir_handle_expression(expression_t *source_expression)
                 ir_left_value->type = IR_VAL_CONSTANT_INT;
                 ir_left_value->value.constant_int = source_left_expr->value.constant_int;
             }
-            else
+            else if (ir_left_instruction_struct.instructions == (void *)1)
             {
                 ir_left_value = allocate(sizeof(ir_value_t));
                 ir_left_value->base.type = IR_NODE_VALUE;
@@ -489,7 +489,7 @@ ir_instruction_struct_t ir_handle_expression(expression_t *source_expression)
                 ir_right_value->type = IR_VAL_CONSTANT_INT;
                 ir_right_value->value.constant_int = source_right_expr->value.constant_int;
             }
-            else
+            else if (ir_right_instruction_struct.instructions == (void *)1)
             {
                 ir_right_value = allocate(sizeof(ir_value_t));
                 ir_right_value->base.type = IR_NODE_VALUE;
@@ -1171,17 +1171,12 @@ ir_instruction_struct_t ir_handle_statement(statement_t *source_statement)
         }
 
         ir_instruction_struct_t ir_return_val_instruction_struct = ir_handle_expression(source_return_expression);
-        if (!ir_return_val_instruction_struct.instructions)
-        {
-            DEBUG_NULL_RETURN("ir_handle_statement");
-            return NULL_INSTRUCTION_STRUCT;
-        }
 
         ir_instruction_t **ir_return_val_instructions = ir_return_val_instruction_struct.instructions;
         size_t ir_return_val_instruction_count = ir_return_val_instruction_struct.instruction_count;
 
         ir_instruction_t *ir_return_instruction = (ir_instruction_t *)allocate(sizeof(ir_instruction_t));
-        if (!ir_return_instruction)
+        if (!ir_return_instruction && !ir_return_val_instructions)
         {
             // deallocate previously allocated memory
             for (size_t i = 0; i < ir_return_val_instruction_count; i++)
@@ -1455,6 +1450,7 @@ ir_instruction_struct_t ir_handle_declaration(declaration_t *source_declaration)
         return NULL_INSTRUCTION_STRUCT;
     }
 
+    dest->type = IR_VAL_VARIABLE;
     dest->value.variable.identifier = iden_var;
 
     copy_zero->instruction.copy_instr.destination = dest;
@@ -1595,7 +1591,6 @@ ir_function_t *ir_handle_function(function_def_t *source_function)
                 stmt_inst.instructions[i]->base.parent = &(ir_function->base);
             }
 
-            deallocate(stmt_inst.instructions);
             break;
         }
         case BLOCK_DECLARATION:
