@@ -24,6 +24,8 @@ ir_instruction_struct_t ir_handle_expression(expression_t *source_expression);
 ir_program_t *ir_handle_program(program_t *source_program);
 ir_identifier_t *ir_handle_identifier(identifier_t *source_identifier);
 ir_unary_operator_t *ir_handle_unary_operator(unary_operator_t *source_unary_operator);
+ir_instruction_struct_t ir_handle_declaration(declaration_t *source_declaration);
+
 char *new_temp_var_name();
 
 ir_binary_operator_t *ir_handle_binary_operator(binary_operator_t *source_binary_operator)
@@ -328,7 +330,7 @@ ir_instruction_struct_t ir_handle_expression(expression_t *source_expression)
 
         iden_var->base.parent = &(dest->base);
         iden_var->base.type = IR_NODE_IDENTIFIER;
-        iden_var->name = new_temp_var_name();
+        iden_var->name = assign.lvalue->value.var.name->name;
         if (!iden_var->name)
         {
             return NULL_INSTRUCTION_STRUCT;
@@ -1325,6 +1327,142 @@ ir_program_t *ir_handle_program(program_t *source_program)
     return ir_program;
 }
 
+ir_instruction_struct_t ir_handle_declaration(declaration_t *source_declaration)
+{
+    if (!source_declaration)
+    {
+        return NULL_INSTRUCTION_STRUCT;
+    }
+
+    expression_t *init_expr = source_declaration->init_expr;
+    if (!init_expr)
+    {
+        return NULL_INSTRUCTION_STRUCT;
+    }
+
+    ir_instruction_struct_t init_expr_ins = ir_handle_expression(init_expr);
+    ir_value_t *init_expr_val = NULL;
+
+    if (init_expr_ins.instruction_count > 0)
+    {
+        init_expr_val = allocate(sizeof(ir_value_t));
+        init_expr_val->base.type = IR_NODE_VALUE;
+        init_expr_val->base.parent = NULL;
+        init_expr_val->type = IR_VAL_VARIABLE;
+
+        ir_instruction_t *last_instruction = init_expr_ins.instructions[init_expr_ins.instruction_count - 1];
+        switch (last_instruction->type)
+        {
+        case IR_INSTR_LABEL:
+        {
+            ir_instruction_t *copy_result = init_expr_ins.instructions[init_expr_ins.instruction_count - 2];
+            init_expr_val->value.variable.identifier = copy_result->instruction.copy_instr.destination->value.variable.identifier;
+            break;
+        }
+        case IR_INSTR_BINARY:
+            init_expr_val->value.variable.identifier =
+                last_instruction->instruction.binary_instr.destination->value.variable.identifier;
+            break;
+        case IR_INSTR_UNARY:
+            init_expr_val->value.variable.identifier =
+                last_instruction->instruction.unary_instr.destination->value.variable.identifier;
+            break;
+        case IR_INSTR_RETURN:
+            init_expr_val->value.variable.identifier =
+                last_instruction->instruction.return_instr.value->value.variable.identifier;
+            break;
+        default:
+            init_expr_val = NULL;
+            break;
+        }
+    }
+
+    if (!init_expr_val)
+    {
+        if (init_expr_ins.instructions == (void *)0)
+        {
+            init_expr_val = allocate(sizeof(ir_value_t));
+            init_expr_val->base.type = IR_NODE_VALUE;
+            init_expr_val->base.parent = NULL;
+            init_expr_val->type = IR_VAL_CONSTANT_INT;
+            init_expr_val->value.constant_int = init_expr->value.constant_int;
+        }
+        else
+        {
+            init_expr_val = allocate(sizeof(ir_value_t));
+            init_expr_val->base.type = IR_NODE_VALUE;
+            init_expr_val->base.parent = NULL;
+            init_expr_val->type = IR_VAL_VARIABLE;
+            ir_identifier_t *iden = (ir_identifier_t *)allocate(sizeof(ir_identifier_t));
+            if (!iden)
+            {
+                return NULL_INSTRUCTION_STRUCT;
+            }
+
+            iden->base.parent = &(init_expr_val->base);
+            iden->base.type = IR_NODE_IDENTIFIER;
+            iden->name = strdup(init_expr->value.var.name->name);
+
+            init_expr_val->value.variable.identifier = iden;
+        }
+    }
+
+    ir_instruction_t *copy_zero = (ir_instruction_t *)allocate(sizeof(ir_instruction_t));
+    if (!copy_zero)
+    {
+        return (ir_instruction_struct_t){.instructions = NULL, .instruction_count = 0};
+    }
+    copy_zero->base.type = IR_NODE_INSTRUCTION;
+    copy_zero->type = IR_INSTR_COPY;
+
+    init_expr_val->base.parent = &(copy_zero->base);
+
+    copy_zero->instruction.copy_instr.source = init_expr_val;
+
+    ir_value_t *dest = (ir_value_t *)allocate(sizeof(ir_value_t));
+    if (!dest)
+    {
+        return NULL_INSTRUCTION_STRUCT;
+    }
+
+    dest->base.parent = &(copy_zero->base);
+    dest->base.type = IR_NODE_VALUE;
+
+    ir_identifier_t *iden_var = (ir_identifier_t *)allocate(sizeof(ir_identifier_t));
+    if (!iden_var)
+    {
+        return NULL_INSTRUCTION_STRUCT;
+    }
+
+    iden_var->base.parent = &(dest->base);
+    iden_var->base.type = IR_NODE_IDENTIFIER;
+    iden_var->name = source_declaration->name->name;
+    if (!iden_var->name)
+    {
+        return NULL_INSTRUCTION_STRUCT;
+    }
+
+    dest->value.variable.identifier = iden_var;
+
+    copy_zero->instruction.copy_instr.destination = dest;
+
+    ir_instruction_t **total_inst = (ir_instruction_t **)allocate(sizeof(ir_instruction_t *) * (init_expr_ins.instruction_count + 1));
+    if (!total_inst)
+    {
+        return NULL_INSTRUCTION_STRUCT;
+    }
+
+    for (size_t counter = 0; counter < init_expr_ins.instruction_count; counter++)
+    {
+        total_inst[counter] = init_expr_ins.instructions[counter];
+    }
+
+    total_inst[init_expr_ins.instruction_count] = copy_zero;
+    deallocate(init_expr_ins.instructions);
+
+    return (ir_instruction_struct_t){.instructions = total_inst, .instruction_count = (init_expr_ins.instruction_count + 1)};
+}
+
 ir_function_t *ir_handle_function(function_def_t *source_function)
 {
     if (!source_function)
@@ -1351,48 +1489,177 @@ ir_function_t *ir_handle_function(function_def_t *source_function)
     }
 
     ir_identifier->base.parent = &(ir_function->base);
-
     ir_function->name = ir_identifier;
 
-    ir_instruction_struct_t ir_instruction_struct = ir_handle_statement(source_function->body);
-    ir_instruction_t **ir_instructions = ir_instruction_struct.instructions;
+#define MAX_TOTAL_INSTRUCTIONS 1024
+
+    size_t current_max_instructions = MAX_TOTAL_INSTRUCTIONS;
+    ir_instruction_t **ir_instructions = (ir_instruction_t **)allocate(sizeof(ir_instruction_t *) * current_max_instructions);
     if (!ir_instructions)
     {
-        deallocate(ir_function);
         deallocate(ir_identifier);
+        deallocate(ir_function);
         DEBUG_NULL_RETURN("ir_handle_function");
         return NULL;
     }
 
-    size_t ir_instruction_count = ir_instruction_struct.instruction_count;
+    block_item_t **source_body = source_function->body;
+    size_t source_body_count = source_function->block_count;
+    size_t curr_index = 0;
 
-    for (size_t counter = 0; counter < ir_instruction_count; counter++)
+    for (size_t counter = 0; counter < source_body_count; counter++)
     {
-        ir_instruction_t *ir_instruction = ir_instructions[counter];
-        if (!ir_instruction)
+        block_item_t *block = source_body[counter];
+        if (!block)
         {
-            // deallocate previously allocated memory
-            for (size_t i = 0; i < counter; i++)
-            {
-                deallocate(ir_instructions[i]);
-            }
-            deallocate(ir_instructions);
-            deallocate(ir_function);
-            deallocate(ir_identifier);
-            DEBUG_NULL_RETURN("ir_handle_function");
-            return NULL;
+            goto cleanup_and_return;
         }
 
-        ir_instruction->base.parent = &(ir_function->base);
+        if (curr_index >= current_max_instructions)
+        {
+            size_t new_size = current_max_instructions * 2;
+            ir_instruction_t **new_instructions = (ir_instruction_t **)allocate(sizeof(ir_instruction_t *) * new_size);
+            if (!new_instructions)
+            {
+                goto cleanup_and_return;
+            }
+
+            for (size_t i = 0; i < curr_index; i++)
+            {
+                new_instructions[i] = ir_instructions[i];
+            }
+
+            deallocate(ir_instructions);
+            ir_instructions = new_instructions;
+            current_max_instructions = new_size;
+        }
+
+        switch (block->type)
+        {
+        case BLOCK_STATEMENT:
+        {
+            ir_instruction_struct_t stmt_inst = ir_handle_statement(block->value.statement);
+            if (!stmt_inst.instructions)
+            {
+                goto cleanup_and_return;
+            }
+
+            if (curr_index + stmt_inst.instruction_count > current_max_instructions)
+            {
+                size_t new_size = current_max_instructions * 2;
+                while (curr_index + stmt_inst.instruction_count > new_size)
+                {
+                    new_size *= 2;
+                }
+
+                ir_instruction_t **new_instructions = (ir_instruction_t **)allocate(sizeof(ir_instruction_t *) * new_size);
+                if (!new_instructions)
+                {
+                    for (size_t i = 0; i < stmt_inst.instruction_count; i++)
+                    {
+                        deallocate(stmt_inst.instructions[i]);
+                    }
+                    goto cleanup_and_return;
+                }
+
+                for (size_t i = 0; i < curr_index; i++)
+                {
+                    new_instructions[i] = ir_instructions[i];
+                }
+
+                deallocate(ir_instructions);
+                ir_instructions = new_instructions;
+                current_max_instructions = new_size;
+            }
+            for (size_t i = 0; i < stmt_inst.instruction_count; i++)
+            {
+                ir_instructions[curr_index++] = stmt_inst.instructions[i];
+                stmt_inst.instructions[i]->base.parent = &(ir_function->base);
+            }
+
+            deallocate(stmt_inst.instructions);
+            break;
+        }
+        case BLOCK_DECLARATION:
+        {
+            declaration_t *source_decl = block->value.declaration;
+            if (!source_decl)
+            {
+                return NULL;
+            }
+
+            if (!source_decl->has_init_expr)
+            {
+                continue;
+            }
+
+            ir_instruction_struct_t decl_inst = ir_handle_declaration(block->value.declaration);
+            if (!decl_inst.instructions)
+            {
+                goto cleanup_and_return;
+            }
+
+            if (curr_index + decl_inst.instruction_count > current_max_instructions)
+            {
+                size_t new_size = current_max_instructions * 2;
+                while (curr_index + decl_inst.instruction_count > new_size)
+                {
+                    new_size *= 2;
+                }
+
+                ir_instruction_t **new_instructions = (ir_instruction_t **)allocate(sizeof(ir_instruction_t *) * new_size);
+                if (!new_instructions)
+                {
+                    for (size_t i = 0; i < decl_inst.instruction_count; i++)
+                    {
+                        deallocate(decl_inst.instructions[i]);
+                    }
+                    goto cleanup_and_return;
+                }
+
+                for (size_t i = 0; i < curr_index; i++)
+                {
+                    new_instructions[i] = ir_instructions[i];
+                }
+
+                deallocate(ir_instructions);
+                ir_instructions = new_instructions;
+                current_max_instructions = new_size;
+            }
+
+            for (size_t i = 0; i < decl_inst.instruction_count; i++)
+            {
+                ir_instructions[curr_index++] = decl_inst.instructions[i];
+                decl_inst.instructions[i]->base.parent = &(ir_function->base);
+            }
+
+            deallocate(decl_inst.instructions);
+            break;
+        }
+        default:
+            goto cleanup_and_return;
+        }
     }
 
-    ir_function->instruction_count = ir_instruction_count;
+    ir_function->instruction_count = curr_index;
     ir_function->body = ir_instructions;
 
     return ir_function;
+
+cleanup_and_return:
+    for (size_t i = 0; i < curr_index; i++)
+    {
+        deallocate(ir_instructions[i]);
+    }
+    deallocate(ir_instructions);
+    deallocate(ir_identifier);
+    deallocate(ir_function);
+    DEBUG_NULL_RETURN("ir_handle_function");
+    return NULL;
 }
 
 #undef NULL_INSTRUCTION_STRUCT
 #undef DEBUG_NULL_RETURN
+#undef MAX_TOTAL_INSTRUCTIONS
 
 #endif /* BF4D96C0_1C97_4F20_AB1B_168AC361CE92 */
