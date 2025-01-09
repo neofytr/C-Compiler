@@ -1,19 +1,19 @@
 section .text
-global main
-main:
+global _start
+_start:
     push rbp
     mov rbp, rsp
-    sub rsp, 20
-    mov qword [rbp-4], 10
-    mov r11, [rbp-4]
-    imul r11, 6
-    mov qword [rbp-4], r11
-    mov r10, [rbp-4]
-    mov qword [rbp-8], r10
-    mov qword [rbp-12], 10
-    mov qword [rbp-16], 10
-    mov qword [rbp-20], 8
-    mov rax, 10
+    sub rsp, 12
+    mov dword [rbp-4], 10
+    mov r10d, [rbp-4]
+    mov dword [rbp-8], r10d
+    add dword [rbp-8], 5
+    mov r10d, [rbp-8]
+    mov dword [rbp-12], r10d
+    mov eax, [rbp-12]
     mov rsp, rbp
     pop rbp
-    ret
+    
+    mov edi, eax
+    mov eax, 60
+    syscall

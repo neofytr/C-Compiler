@@ -11,15 +11,15 @@ const char *map_register_name(int reg)
     switch (reg)
     {
     case ASM_REG_R10:
-        return "r10";
+        return "r10d";
     case ASM_REG_RAX:
-        return "rax";
+        return "eax";
     case ASM_REG_R11:
-        return "r11";
+        return "r11d";
     case ASM_REG_RDX:
-        return "rdx";
+        return "edx";
     case ASM_REG_RCX:
-        return "rcx";
+        return "ecx";
     default:
         fprintf(stderr, "Error: Unsupported register in map_register_name\n");
         return "";
@@ -191,7 +191,7 @@ bool emit_mov_instruction(asm_instruction_t *instruction, FILE *output_file)
 
     if (dst->type == OPERAND_STACK)
     {
-        if (fprintf(output_file, "    mov qword %s, %s\n", dst_str, src_str) < 0)
+        if (fprintf(output_file, "    mov dword %s, %s\n", dst_str, src_str) < 0)
         {
             fprintf(stderr, "Error writing mov instruction\n");
             return false;
@@ -267,7 +267,7 @@ bool emit_unary_instruction(asm_instruction_t *instruction, FILE *output_file)
 
     if (operand->type == OPERAND_STACK)
     {
-        if (fprintf(output_file, "    %s qword %s\n", op_str, operand_str) < 0)
+        if (fprintf(output_file, "    %s dword %s\n", op_str, operand_str) < 0)
         {
             fprintf(stderr, "Error writing unary instruction\n");
             return false;
@@ -383,7 +383,7 @@ bool emit_binary_instruction(asm_instruction_t *asm_instruction, FILE *output_fi
     {
         if (first_operand->type == OPERAND_STACK)
         {
-            if (fprintf(output_file, "    %s qword %s, cl\n", op_str, first_str) < 0)
+            if (fprintf(output_file, "    %s dword %s, cl\n", op_str, first_str) < 0)
             {
                 fprintf(stderr, "Error writing binary instruction\n");
                 return false;
@@ -403,7 +403,7 @@ bool emit_binary_instruction(asm_instruction_t *asm_instruction, FILE *output_fi
 
     if (first_operand->type == OPERAND_STACK)
     {
-        if (fprintf(output_file, "    %s qword %s, %s\n", op_str, first_str, second_str) < 0)
+        if (fprintf(output_file, "    %s dword %s, %s\n", op_str, first_str, second_str) < 0)
         {
             fprintf(stderr, "Error writing binary instruction\n");
             return false;
@@ -478,7 +478,7 @@ bool emit_idiv_instruction(asm_instruction_t *asm_instruction, FILE *output_file
     case OPERAND_STACK:
     {
         asm_stack_t *idiv_stack_operand = &idiv_operand->operand.stack;
-        fprintf(output_file, "    idiv qword [rbp-%d]\n", -idiv_stack_operand->offset);
+        fprintf(output_file, "    idiv dword [rbp-%d]\n", -idiv_stack_operand->offset);
         break;
     }
     }
@@ -675,7 +675,7 @@ bool emit_cmp_instruction(asm_instruction_t *instruction, FILE *output_file)
 
     if (first_operand->type == OPERAND_STACK)
     {
-        if (fprintf(output_file, "    cmp qword %s, %s\n", first_str, second_str) < 0)
+        if (fprintf(output_file, "    cmp dword %s, %s\n", first_str, second_str) < 0)
         {
             fprintf(stderr, "Error writing compare instruction\n");
             return false;

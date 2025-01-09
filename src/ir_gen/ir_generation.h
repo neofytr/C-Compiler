@@ -971,9 +971,9 @@ ir_instruction_struct_t ir_handle_expression(expression_t *source_expression)
             combined_instructions[current_index++] = ir_binary_instruction;
         }
 
-        if (ir_left_instruction_struct.instructions)
+        if (ir_left_instruction_struct.instructions != NULL && ir_left_instruction_struct.instructions != (void *)1 && ir_left_instruction_struct.instructions != (void *)2)
             deallocate(ir_left_instruction_struct.instructions);
-        if (ir_right_instruction_struct.instructions)
+        if (ir_right_instruction_struct.instructions != NULL && ir_right_instruction_struct.instructions != (void *)1 && ir_right_instruction_struct.instructions != (void *)2)
             deallocate(ir_right_instruction_struct.instructions);
 
         return (ir_instruction_struct_t){
@@ -1192,7 +1192,7 @@ ir_instruction_struct_t ir_handle_statement(statement_t *source_statement)
         ir_return_instruction->base.type = IR_NODE_INSTRUCTION;
         ir_return_instruction->type = IR_INSTR_RETURN;
 
-        if (ir_return_val_instruction_count == 0)
+        if (ir_return_val_instruction_struct.instructions == (void *)0)
         {
             ir_value_t *ir_instruction_return_value = (ir_value_t *)allocate(sizeof(ir_value_t));
             if (!ir_instruction_return_value)
@@ -1206,6 +1206,37 @@ ir_instruction_struct_t ir_handle_statement(statement_t *source_statement)
             ir_instruction_return_value->base.parent = &(ir_return_instruction->base);
             ir_instruction_return_value->type = IR_VAL_CONSTANT_INT;
             ir_instruction_return_value->value.constant_int = source_return_expression->value.constant_int;
+
+            ir_return_instruction->instruction.return_instr = (ir_instruction_return_t){.value = ir_instruction_return_value};
+
+            return (ir_instruction_struct_t){
+                .instructions = &ir_return_instruction,
+                .instruction_count = 1};
+        }
+        else if (ir_return_val_instruction_struct.instructions == (void *)1)
+        {
+            ir_value_t *ir_instruction_return_value = (ir_value_t *)allocate(sizeof(ir_value_t));
+            if (!ir_instruction_return_value)
+            {
+                deallocate(ir_return_instruction);
+                DEBUG_NULL_RETURN("ir_handle_statement");
+                return NULL_INSTRUCTION_STRUCT;
+            }
+
+            ir_instruction_return_value->base.type = IR_NODE_VALUE;
+            ir_instruction_return_value->base.parent = &(ir_return_instruction->base);
+            ir_instruction_return_value->type = IR_VAL_VARIABLE;
+
+            ir_identifier_t *iden = (ir_identifier_t *)allocate(sizeof(ir_identifier_t));
+            if (!iden)
+            {
+                return NULL_INSTRUCTION_STRUCT;
+            }
+
+            iden->base.parent = &(ir_return_instruction->base);
+            iden->base.type = IR_NODE_IDENTIFIER;
+            iden->name = source_return_expression->value.var.name->name;
+            ir_instruction_return_value->value.variable.identifier = iden;
 
             ir_return_instruction->instruction.return_instr = (ir_instruction_return_t){.value = ir_instruction_return_value};
 

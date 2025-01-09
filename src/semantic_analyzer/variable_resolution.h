@@ -58,7 +58,9 @@ bool resolve_declaration(declaration_t *declaration, var_table_t *var_table)
             deallocate(new_unique_name);
             return false;
         }
-        deallocate(new_unique_name);
+
+        deallocate(var_name);
+        declaration->name->name = new_unique_name;
 
         if (declaration->has_init_expr)
         {
