@@ -435,3 +435,38 @@ unsigned int foo = sizeof(foo);
 ```
 
 We're still using `foo` before initializing it, but we consider only `foo`'s size, not it's value. Annex J of the C standard says we get undefined behavior, when "an lvalue ... is used in a context *that requires the value of the designated object, but the object is uninitialized* (emphasis added). Since `sizeof` doesn't require `foo`'s value, there is no undefined behavior in this declaration.
+
+# The trouble with typedef
+
+The way we've structured our compiler has one major limitation: we first parse the entire program, and then resolve variables.
+
+This approach works well for the subset of C we'll implement, but to implement the whole language, we need to resolve identifiers *while* you parse the program. In particular, our approach can't handle `typedef`, which lets you declare names for arbitrary types:
+
+`typedef int foo`
+
+The problem is that some statements can be parsed one way if an identifier like `foo` refers to a type and another way if it refers to a function or variable. Here's a simple illustration:
+
+`return (foo) * x;`
+
+If `foo` is the name of a type, this statement dereferences `x`, casts the result to type `foo`, and then returns it. But if `foo` is a variable, this statement instead multiplies `foo` by `x` and returns the result.
+
+To make matters worse, type names follow the same scoping rules as variable names. So, just as the same identifier might refer to two different variables at different points in a program, it might
+refer to a variable at one point and a type at a different point. 
+
+To figure out whether a given identifier refers to a type or a variable, you need to resolve identifiers as you parse the program.
+
+Since the correct way to parse a C construct might depend on other parts of the program you’ve already parsed, we say that C has a context-sensitive grammar. (By contrast, a language has a
+context-free grammar if you can apply every production rule in isolation, without worrying about anything that came before it.)
+
+Production C compilers generally deal with `typedef` by maintaining a symbol table (similar to our variable map), while they parse the program. Some of them feed the information from the symbol table back into the lexer, which then interprets type names as a different kind of token from other identifiers; this approach is called the lexer hack. 
+
+Others use the same token type for all identifiers and do all the work of distinguising between type names and other identifiers in the parser. If you want to implement typedef on your own, I recommend the latter approach.
+
+Here's a quick sketch of how we could adapt our implementation to support `typedef`. First, you'll need to move all the variable resolution logic into the parser. You should pass around a variable map as you parse the program. Your parser should add declarations to the map and rename variables as it goes. It should also validate that variables are declared before they are used, that there are no conflicting declarations, and so on. It should also have the information about whether an identifier is a type name or not in the current scope.
+
+Once you're ready to add `typedef`, you can track type names in this map too, recording whether each entry in the map refers to a type or some other entity. You might want to convert type names to unique IDs during parsing, and then replace these names with their corresponding types in a separate pass. Alternatively, you could replace type names with the corresponding types right away as you parse the program.
+
+Either way, your parser will have enough information to distinguish types from other identifiers. The other semantic analysis passes that we'll add in later chapters should remain separate from the parser.
+
+If you decide to implement typedef yourself, I recommend reading Eli Bendersky’s blog post “The Context Sensitivity of C’s Grammar, Revisited,” which walks through some particularly ugly edge cases that you’ll need to handle (https://eli.thegreenplace.net/2011/05/02/the-context-sensitivity-of-cs -grammar-revisited).
+
