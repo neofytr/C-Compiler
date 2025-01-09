@@ -308,6 +308,10 @@ binary_operator_t *parse_binary_operator(parser_t *parser)
     return binary_operator;
 }
 
+static expression_t *parse_binary_expression(parser_t *parser, expression_t *left, operator_precedence_t current_precedence);
+static bool is_valid_operator(token_type_t type);
+static expression_t *parse_assignment_expression(parser_t *parser, expression_t *left);
+
 expression_t *parse_expression(parser_t *parser, operator_precedence_t min_precedence)
 {
     if (!parser)
@@ -334,78 +338,154 @@ expression_t *parse_expression(parser_t *parser, operator_precedence_t min_prece
     {
         token_t *next_token = peek_token(parser);
 
-        if (!next_token ||
-            !(next_token->type == TOKEN_OPERATOR_PLUS ||
-              next_token->type == TOKEN_OPERATOR_NEGATION ||
-              next_token->type == TOKEN_OPERATOR_DIV ||
-              next_token->type == TOKEN_OPERATOR_MUL ||
-              next_token->type == TOKEN_OPERATOR_REM ||
-              next_token->type == TOKEN_OPERATOR_BITWISE_AND ||
-              next_token->type == TOKEN_OPERATOR_BITWISE_OR ||
-              next_token->type == TOKEN_OPERATOR_BITWISE_XOR ||
-              next_token->type == TOKEN_OPERATOR_BITWISE_LEFT_SHIFT ||
-              next_token->type == TOKEN_OPERATOR_BITWISE_RIGHT_SHIFT ||
-              next_token->type == TOKEN_OPERATOR_LOGICAL_AND ||
-              next_token->type == TOKEN_OPERATOR_LOGICAL_OR ||
-              next_token->type == TOKEN_OPERATOR_EQUAL ||
-              next_token->type == TOKEN_OPERATOR_NOT_EQUAL ||
-              next_token->type == TOKEN_OPERATOR_LESS ||
-              next_token->type == TOKEN_OPERATOR_LESS_EQUAL ||
-              next_token->type == TOKEN_OPERATOR_GREATER ||
-              next_token->type == TOKEN_OPERATOR_GREATER_EQUAL))
+        if (!next_token)
         {
             break;
         }
 
-        operator_precedence_t current_precedence = token_precedence(next_token);
-        if (current_precedence < min_precedence)
+        if (!is_valid_operator(next_token->type))
         {
             break;
         }
 
-        expression_t *binary_expr = (expression_t *)allocate(sizeof(expression_t));
-        if (!binary_expr)
+        if (next_token->type == TOKEN_OPERATOR_ASSIGN)
         {
-            return NULL;
+            expression_t *assign_expr = parse_assignment_expression(parser, left);
+            if (!assign_expr)
+            {
+                deallocate(left);
+                return NULL;
+            }
+            left = assign_expr;
         }
-
-        binary_expr->base.type = NODE_EXPRESSION;
-        binary_expr->base.location.line = next_token->line;
-        binary_expr->base.location.column = next_token->column;
-        binary_expr->base.parent = NULL;
-        binary_expr->expr_type = EXPR_BINARY;
-
-        binary_operator_t *bin_op = parse_binary_operator(parser);
-        if (!bin_op)
+        else
         {
-            deallocate(binary_expr);
-            return NULL;
+            operator_precedence_t current_precedence = token_precedence(next_token);
+            if (current_precedence < min_precedence)
+            {
+                break;
+            }
+
+            expression_t *binary_expr = parse_binary_expression(parser, left, current_precedence);
+            if (!binary_expr)
+            {
+                deallocate(left);
+                return NULL;
+            }
+            left = binary_expr;
         }
-        bin_op->base.location.column = next_token->column;
-        bin_op->base.location.line = next_token->line;
-
-        expression_t *right = parse_expression(parser, current_precedence + 1);
-        if (!right)
-        {
-            deallocate(binary_expr);
-            deallocate(bin_op);
-            return NULL;
-        }
-
-        binary_expr->value.binary.op = bin_op;
-        binary_expr->value.binary.left_expr = left;
-        binary_expr->value.binary.right_expr = right;
-
-        bin_op->base.parent = &(binary_expr->base);
-        right->base.parent = &(binary_expr->base);
-        right->base.type = NODE_EXPRESSION;
-        left->base.type = NODE_EXPRESSION;
-        left->base.parent = &(binary_expr->base);
-
-        left = binary_expr;
     }
 
     return left;
+}
+
+static bool is_valid_operator(token_type_t type)
+{
+    return (type == TOKEN_OPERATOR_PLUS ||
+            type == TOKEN_OPERATOR_NEGATION ||
+            type == TOKEN_OPERATOR_DIV ||
+            type == TOKEN_OPERATOR_MUL ||
+            type == TOKEN_OPERATOR_REM ||
+            type == TOKEN_OPERATOR_BITWISE_AND ||
+            type == TOKEN_OPERATOR_BITWISE_OR ||
+            type == TOKEN_OPERATOR_BITWISE_XOR ||
+            type == TOKEN_OPERATOR_BITWISE_LEFT_SHIFT ||
+            type == TOKEN_OPERATOR_BITWISE_RIGHT_SHIFT ||
+            type == TOKEN_OPERATOR_LOGICAL_AND ||
+            type == TOKEN_OPERATOR_LOGICAL_OR ||
+            type == TOKEN_OPERATOR_EQUAL ||
+            type == TOKEN_OPERATOR_NOT_EQUAL ||
+            type == TOKEN_OPERATOR_LESS ||
+            type == TOKEN_OPERATOR_LESS_EQUAL ||
+            type == TOKEN_OPERATOR_GREATER ||
+            type == TOKEN_OPERATOR_GREATER_EQUAL ||
+            type == TOKEN_OPERATOR_ASSIGN);
+}
+
+static expression_t *parse_assignment_expression(parser_t *parser, expression_t *left)
+{
+    advance_token(parser);
+    token_t *tok = peek_token(parser);
+    if (!tok)
+    {
+        return NULL;
+    }
+
+    expression_t *expr_assign = (expression_t *)allocate(sizeof(assignment_t));
+    if (!expr_assign)
+    {
+        return NULL;
+    }
+
+    expr_assign->base.location.column = tok->column;
+    expr_assign->base.location.line = tok->line;
+    expr_assign->expr_type = EXPR_ASSIGN;
+    expr_assign->base.type = NODE_EXPRESSION;
+
+    expression_t *rvalue = parse_expression(parser, token_precedence(tok));
+    if (!rvalue)
+    {
+        deallocate(expr_assign);
+        return NULL;
+    }
+
+    rvalue->base.location.column = tok->column;
+    rvalue->base.location.line = tok->line;
+    rvalue->base.parent = &(expr_assign->base);
+    rvalue->base.type = NODE_EXPRESSION;
+
+    left->base.parent = &(expr_assign->base);
+    left->base.type = NODE_EXPRESSION;
+
+    expr_assign->value.assign.lvalue = left;
+    expr_assign->value.assign.rvalue = rvalue;
+
+    return expr_assign;
+}
+
+static expression_t *parse_binary_expression(parser_t *parser, expression_t *left, operator_precedence_t current_precedence)
+{
+    expression_t *binary_expr = (expression_t *)allocate(sizeof(expression_t));
+    if (!binary_expr)
+    {
+        return NULL;
+    }
+
+    token_t *next_token = peek_token(parser);
+    binary_expr->base.type = NODE_EXPRESSION;
+    binary_expr->base.location.line = next_token->line;
+    binary_expr->base.location.column = next_token->column;
+    binary_expr->base.parent = NULL;
+    binary_expr->expr_type = EXPR_BINARY;
+
+    binary_operator_t *bin_op = parse_binary_operator(parser);
+    if (!bin_op)
+    {
+        deallocate(binary_expr);
+        return NULL;
+    }
+    bin_op->base.location.column = next_token->column;
+    bin_op->base.location.line = next_token->line;
+
+    expression_t *right = parse_expression(parser, current_precedence + 1);
+    if (!right)
+    {
+        deallocate(binary_expr);
+        deallocate(bin_op);
+        return NULL;
+    }
+
+    binary_expr->value.binary.op = bin_op;
+    binary_expr->value.binary.left_expr = left;
+    binary_expr->value.binary.right_expr = right;
+
+    bin_op->base.parent = &(binary_expr->base);
+    right->base.parent = &(binary_expr->base);
+    right->base.type = NODE_EXPRESSION;
+    left->base.type = NODE_EXPRESSION;
+    left->base.parent = &(binary_expr->base);
+
+    return binary_expr;
 }
 
 expression_t *parse_factor(parser_t *parser)
@@ -428,6 +508,25 @@ expression_t *parse_factor(parser_t *parser)
 
     switch (token->type)
     {
+    case TOKEN_IDENTIFIER:
+    {
+        expression->base.type = NODE_EXPRESSION;
+        expression->base.location.line = token->line;
+        expression->base.location.column = token->column;
+        expression->base.parent = NULL;
+        expression->expr_type = EXPR_VAR;
+
+        identifier_t *name = strdup(token->value);
+        if (!name)
+        {
+            return NULL;
+        }
+
+        expression->value.var.name = name;
+        advance_token(parser);
+        break;
+    }
+
     case TOKEN_CONSTANT:
     {
         expression->base.type = NODE_EXPRESSION;
