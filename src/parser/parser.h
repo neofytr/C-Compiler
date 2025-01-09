@@ -649,8 +649,8 @@ expression_t *parse_factor(parser_t *parser)
 
 statement_t *parse_statement(parser_t *parser)
 {
-    token_t *return_token = peek_token(parser);
-    if (!return_token || !expect_token(parser, TOKEN_KEYWORD_RETURN, "Expected 'return' statement"))
+    token_t *curr_token = peek_token(parser);
+    if (!curr_token)
     {
         return NULL;
     }
@@ -661,23 +661,56 @@ statement_t *parse_statement(parser_t *parser)
         return NULL;
     }
 
-    statement->base.type = NODE_STATEMENT;
-    statement->base.location.line = return_token->line;
-    statement->base.location.column = return_token->column;
-    statement->base.parent = NULL;
-    statement->stmt_type = STMT_RETURN;
-
-    expression_t *expression = parse_expression(parser, MIN_PRECEDENCE);
-    if (!expression)
+    switch (curr_token->type)
     {
-        return NULL;
+    case TOKEN_KEYWORD_RETURN:
+    {
+
+        statement->base.type = NODE_STATEMENT;
+        statement->base.location.line = curr_token->line;
+        statement->base.location.column = curr_token->column;
+        statement->base.parent = NULL;
+        statement->stmt_type = STMT_RETURN;
+
+        expression_t *expression = parse_expression(parser, MIN_PRECEDENCE);
+        if (!expression)
+        {
+            return NULL;
+        }
+        expression->base.parent = &(statement->base);
+        statement->value.return_expr = expression;
+
+        if (!expect_token(parser, TOKEN_SEMICOLON, "Expected ';' after return expression"))
+        {
+            return NULL;
+        }
+        break;
     }
-    expression->base.parent = &(statement->base);
-    statement->value.return_expr = expression;
-
-    if (!expect_token(parser, TOKEN_SEMICOLON, "Expected ';' after return expression"))
+    case TOKEN_SEMICOLON:
     {
-        return NULL;
+        statement->base.type = NODE_STATEMENT;
+        statement->base.location.line = curr_token->line;
+        statement->base.location.column = curr_token->column;
+        statement->base.parent = NULL;
+        statement->stmt_type = STMT_NULL;
+        break;
+    }
+    default:
+    {
+        expression_t *expression = parse_expression(parser, MIN_PRECEDENCE);
+        if (!expression)
+        {
+            return NULL;
+        }
+        expression->base.parent = &(statement->base);
+        statement->value.return_expr = expression;
+
+        if (!expect_token(parser, TOKEN_SEMICOLON, "Expected ';' after return expression"))
+        {
+            return NULL;
+        }
+        break;
+    }
     }
 
     return statement;
