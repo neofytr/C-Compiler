@@ -223,20 +223,144 @@ ir_instruction_struct_t ir_handle_expression(expression_t *source_expression)
 
     switch (source_expression_type)
     {
-    case EXPR_CONSTANT_INT:
+    case EXPR_ASSIGN:
     {
-        ir_value_t *ir_constant_value = (ir_value_t *)allocate(sizeof(ir_value_t));
-        if (!ir_constant_value)
+        assignment_t assign = source_expression->value.assign;
+        expression_t *init_expr = assign.rvalue;
+        if (!init_expr)
         {
-            DEBUG_NULL_RETURN("ir_handle_expression");
             return NULL_INSTRUCTION_STRUCT;
         }
 
-        ir_constant_value->base.type = IR_NODE_VALUE;
-        ir_constant_value->type = IR_VAL_CONSTANT_INT;
-        ir_constant_value->value.constant_int = source_expression->value.constant_int;
+        ir_instruction_struct_t init_expr_ins = ir_handle_expression(init_expr);
+        ir_value_t *init_expr_val = NULL;
 
-        return (ir_instruction_struct_t){.instructions = NULL, .instruction_count = 0};
+        if (init_expr_ins.instruction_count > 0)
+        {
+            init_expr_val = allocate(sizeof(ir_value_t));
+            init_expr_val->base.type = IR_NODE_VALUE;
+            init_expr_val->base.parent = NULL;
+            init_expr_val->type = IR_VAL_VARIABLE;
+
+            ir_instruction_t *last_instruction = init_expr_ins.instructions[init_expr_ins.instruction_count - 1];
+            switch (last_instruction->type)
+            {
+            case IR_INSTR_LABEL:
+            {
+                ir_instruction_t *copy_result = init_expr_ins.instructions[init_expr_ins.instruction_count - 2];
+                init_expr_val->value.variable.identifier = copy_result->instruction.copy_instr.destination->value.variable.identifier;
+                break;
+            }
+            case IR_INSTR_BINARY:
+                init_expr_val->value.variable.identifier =
+                    last_instruction->instruction.binary_instr.destination->value.variable.identifier;
+                break;
+            case IR_INSTR_UNARY:
+                init_expr_val->value.variable.identifier =
+                    last_instruction->instruction.unary_instr.destination->value.variable.identifier;
+                break;
+            case IR_INSTR_RETURN:
+                init_expr_val->value.variable.identifier =
+                    last_instruction->instruction.return_instr.value->value.variable.identifier;
+                break;
+            default:
+                init_expr_val = NULL;
+                break;
+            }
+        }
+
+        if (!init_expr_val)
+        {
+            if (init_expr_ins.instructions == (void *)0)
+            {
+                init_expr_val = allocate(sizeof(ir_value_t));
+                init_expr_val->base.type = IR_NODE_VALUE;
+                init_expr_val->base.parent = NULL;
+                init_expr_val->type = IR_VAL_CONSTANT_INT;
+                init_expr_val->value.constant_int = init_expr->value.constant_int;
+            }
+            else
+            {
+                init_expr_val = allocate(sizeof(ir_value_t));
+                init_expr_val->base.type = IR_NODE_VALUE;
+                init_expr_val->base.parent = NULL;
+                init_expr_val->type = IR_VAL_VARIABLE;
+                ir_identifier_t *iden = (ir_identifier_t *)allocate(sizeof(ir_identifier_t));
+                if (!iden)
+                {
+                    return NULL_INSTRUCTION_STRUCT;
+                }
+
+                iden->base.parent = &(init_expr_val->base);
+                iden->base.type = IR_NODE_IDENTIFIER;
+                iden->name = strdup(init_expr->value.var.name->name);
+
+                init_expr_val->value.variable.identifier = iden;
+            }
+        }
+
+        ir_instruction_t *copy_zero = (ir_instruction_t *)allocate(sizeof(ir_instruction_t));
+        if (!copy_zero)
+        {
+            return (ir_instruction_struct_t){.instructions = NULL, .instruction_count = 0};
+        }
+        copy_zero->base.type = IR_NODE_INSTRUCTION;
+        copy_zero->type = IR_INSTR_COPY;
+
+        init_expr_val->base.parent = &(copy_zero->base);
+
+        copy_zero->instruction.copy_instr.source = init_expr_val;
+
+        ir_value_t *dest = (ir_value_t *)allocate(sizeof(ir_value_t));
+        if (!dest)
+        {
+            return NULL_INSTRUCTION_STRUCT;
+        }
+
+        dest->base.parent = &(copy_zero->base);
+        dest->base.type = IR_NODE_VALUE;
+
+        ir_identifier_t *iden_var = (ir_identifier_t *)allocate(sizeof(ir_identifier_t));
+        if (!iden_var)
+        {
+            return NULL_INSTRUCTION_STRUCT;
+        }
+
+        iden_var->base.parent = &(dest->base);
+        iden_var->base.type = IR_NODE_IDENTIFIER;
+        iden_var->name = new_temp_var_name();
+        if (!iden_var->name)
+        {
+            return NULL_INSTRUCTION_STRUCT;
+        }
+
+        dest->value.variable.identifier = iden_var;
+
+        copy_zero->instruction.copy_instr.destination = dest;
+
+        ir_instruction_t **total_inst = (ir_instruction_t **)allocate(sizeof(ir_instruction_t *) * (init_expr_ins.instruction_count + 1));
+        if (!total_inst)
+        {
+            return NULL_INSTRUCTION_STRUCT;
+        }
+
+        for (size_t counter = 0; counter < init_expr_ins.instruction_count; counter++)
+        {
+            total_inst[counter] = init_expr_ins.instructions[counter];
+        }
+
+        total_inst[init_expr_ins.instruction_count] = copy_zero;
+        deallocate(init_expr_ins.instructions);
+
+        return (ir_instruction_struct_t){.instructions = total_inst, .instruction_count = (init_expr_ins.instruction_count + 1)};
+    }
+    case EXPR_VAR:
+    {
+        return (ir_instruction_struct_t){.instructions = (void *)1, .instruction_count = 0};
+    }
+    case EXPR_CONSTANT_INT:
+    {
+        return (ir_instruction_struct_t){.instructions = (void *)0, .instruction_count = 0};
     }
     case EXPR_BINARY:
     {
@@ -325,20 +449,62 @@ ir_instruction_struct_t ir_handle_expression(expression_t *source_expression)
 
         if (!ir_left_value)
         {
-            ir_left_value = allocate(sizeof(ir_value_t));
-            ir_left_value->base.type = IR_NODE_VALUE;
-            ir_left_value->base.parent = NULL;
-            ir_left_value->type = IR_VAL_CONSTANT_INT;
-            ir_left_value->value.constant_int = source_left_expr->value.constant_int;
+            if (ir_left_instruction_struct.instructions == (void *)0)
+            {
+                ir_left_value = allocate(sizeof(ir_value_t));
+                ir_left_value->base.type = IR_NODE_VALUE;
+                ir_left_value->base.parent = NULL;
+                ir_left_value->type = IR_VAL_CONSTANT_INT;
+                ir_left_value->value.constant_int = source_left_expr->value.constant_int;
+            }
+            else
+            {
+                ir_left_value = allocate(sizeof(ir_value_t));
+                ir_left_value->base.type = IR_NODE_VALUE;
+                ir_left_value->base.parent = NULL;
+                ir_left_value->type = IR_VAL_VARIABLE;
+                ir_identifier_t *iden = (ir_identifier_t *)allocate(sizeof(ir_identifier_t));
+                if (!iden)
+                {
+                    return NULL_INSTRUCTION_STRUCT;
+                }
+
+                iden->base.parent = &(ir_left_value->base);
+                iden->base.type = IR_NODE_IDENTIFIER;
+                iden->name = strdup(source_left_expr->value.var.name->name);
+
+                ir_left_value->value.variable.identifier = iden;
+            }
         }
 
         if (!ir_right_value)
         {
-            ir_right_value = allocate(sizeof(ir_value_t));
-            ir_right_value->base.type = IR_NODE_VALUE;
-            ir_right_value->base.parent = NULL;
-            ir_right_value->type = IR_VAL_CONSTANT_INT;
-            ir_right_value->value.constant_int = source_right_expr->value.constant_int;
+            if (ir_right_instruction_struct.instructions == (void *)0)
+            {
+                ir_right_value = allocate(sizeof(ir_value_t));
+                ir_right_value->base.type = IR_NODE_VALUE;
+                ir_right_value->base.parent = NULL;
+                ir_right_value->type = IR_VAL_CONSTANT_INT;
+                ir_right_value->value.constant_int = source_right_expr->value.constant_int;
+            }
+            else
+            {
+                ir_right_value = allocate(sizeof(ir_value_t));
+                ir_right_value->base.type = IR_NODE_VALUE;
+                ir_right_value->base.parent = NULL;
+                ir_right_value->type = IR_VAL_VARIABLE;
+                ir_identifier_t *iden = (ir_identifier_t *)allocate(sizeof(ir_identifier_t));
+                if (!iden)
+                {
+                    return NULL_INSTRUCTION_STRUCT;
+                }
+
+                iden->base.parent = &(ir_right_value->base);
+                iden->base.type = IR_NODE_IDENTIFIER;
+                iden->name = strdup(source_right_expr->value.var.name->name);
+
+                ir_right_value->value.variable.identifier = iden;
+            }
         }
 
         ir_binary_operator_t *ir_binary_operator = ir_handle_binary_operator(source_binary_operator);
