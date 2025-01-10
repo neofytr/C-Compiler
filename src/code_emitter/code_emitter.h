@@ -189,9 +189,14 @@ bool emit_mov_instruction(asm_instruction_t *instruction, FILE *output_file)
         break;
     }
 
-    if (dst->type == OPERAND_STACK)
+    bool needs_size_specifier = (dst->type == OPERAND_STACK || src->type == OPERAND_STACK);
+
+    if (needs_size_specifier)
     {
-        if (fprintf(output_file, "    mov dword %s, %s\n", dst_str, src_str) < 0)
+        if (fprintf(output_file, "    mov %s%s, %s\n",
+                    dst->type == OPERAND_STACK ? "dword " : "",
+                    dst_str,
+                    src->type == OPERAND_STACK ? "dword " : "") < 0)
         {
             fprintf(stderr, "Error writing mov instruction\n");
             return false;
@@ -401,7 +406,9 @@ bool emit_binary_instruction(asm_instruction_t *asm_instruction, FILE *output_fi
         return true;
     }
 
-    if (first_operand->type == OPERAND_STACK)
+    bool needs_dword = (first_operand->type == OPERAND_STACK || second_operand->type == OPERAND_STACK);
+
+    if (needs_dword)
     {
         if (fprintf(output_file, "    %s dword %s, %s\n", op_str, first_str, second_str) < 0)
         {
