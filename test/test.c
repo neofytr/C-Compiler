@@ -12,6 +12,22 @@ int main(void)
     sum = sum + i * i;
     i = i + 1;
     sum = sum + i * i;
+    i = i + 1;
+    sum = sum + i * i;
+    i = i + 1;
+    sum = sum + i * i;
+    i = i + 1;
+    sum = sum + i * i;
+    i = i + 1;
+    sum = sum + i * i;
+    i = i + 1;
+    sum = sum + i * i;
+    i = i + 1;
+    sum = sum + i * i;
+    i = i + 1;
+    sum = sum + i * i;
+    i = i + 1;
+    sum = sum + i * i;
 
     return sum;
 }

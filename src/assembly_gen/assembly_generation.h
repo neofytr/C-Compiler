@@ -171,7 +171,7 @@ asm_function_t *handle_function(function_def_t *function)
     }
 
     identifier_t *name = function->name;
-    statement_t *statement = function->body;
+    statement_t *statement; // = function->body
 
     if (!name || !statement)
     {

@@ -1,92 +1,231 @@
 section .text
-global main
-main:
+global _start
+_start:
     push rbp
     mov rbp, rsp
-    sub rsp, 64
+    sub rsp, 160
     mov dword [rbp-4], 0
     mov dword [rbp-8], 1
-    mov r10d, [rbp-8]
+    mov r10d, dword [rbp-8]
     mov dword [rbp-12], r10d
-    mov r11d, [rbp-12]
-    imul r11d, [rbp-8]
+    mov r11d, dword [rbp-12]
+    imul r11d, dword [rbp-8]
     mov dword [rbp-12], r11d
-    mov r10d, [rbp-4]
+    mov r10d, dword [rbp-4]
     mov dword [rbp-16], r10d
-    mov r10d, [rbp-16]
-    add r10d, [rbp-12]
+    mov r10d, dword [rbp-16]
+    add r10d, dword [rbp-12]
     mov dword [rbp-16], r10d
-    mov r10d, [rbp-16]
+    mov r10d, dword [rbp-16]
     mov dword [rbp-4], r10d
-    mov r10d, [rbp-8]
+    mov r10d, dword [rbp-8]
     mov dword [rbp-20], r10d
     add dword [rbp-20], 1
-    mov r10d, [rbp-20]
+    mov r10d, dword [rbp-20]
     mov dword [rbp-8], r10d
-    mov r10d, [rbp-8]
+    mov r10d, dword [rbp-8]
     mov dword [rbp-24], r10d
-    mov r11d, [rbp-24]
-    imul r11d, [rbp-8]
+    mov r11d, dword [rbp-24]
+    imul r11d, dword [rbp-8]
     mov dword [rbp-24], r11d
-    mov r10d, [rbp-4]
+    mov r10d, dword [rbp-4]
     mov dword [rbp-28], r10d
-    mov r10d, [rbp-28]
-    add r10d, [rbp-24]
+    mov r10d, dword [rbp-28]
+    add r10d, dword [rbp-24]
     mov dword [rbp-28], r10d
-    mov r10d, [rbp-28]
+    mov r10d, dword [rbp-28]
     mov dword [rbp-4], r10d
-    mov r10d, [rbp-8]
+    mov r10d, dword [rbp-8]
     mov dword [rbp-32], r10d
     add dword [rbp-32], 1
-    mov r10d, [rbp-32]
+    mov r10d, dword [rbp-32]
     mov dword [rbp-8], r10d
-    mov r10d, [rbp-8]
+    mov r10d, dword [rbp-8]
     mov dword [rbp-36], r10d
-    mov r11d, [rbp-36]
-    imul r11d, [rbp-8]
+    mov r11d, dword [rbp-36]
+    imul r11d, dword [rbp-8]
     mov dword [rbp-36], r11d
-    mov r10d, [rbp-4]
+    mov r10d, dword [rbp-4]
     mov dword [rbp-40], r10d
-    mov r10d, [rbp-40]
-    add r10d, [rbp-36]
+    mov r10d, dword [rbp-40]
+    add r10d, dword [rbp-36]
     mov dword [rbp-40], r10d
-    mov r10d, [rbp-40]
+    mov r10d, dword [rbp-40]
     mov dword [rbp-4], r10d
-    mov r10d, [rbp-8]
+    mov r10d, dword [rbp-8]
     mov dword [rbp-44], r10d
     add dword [rbp-44], 1
-    mov r10d, [rbp-44]
+    mov r10d, dword [rbp-44]
     mov dword [rbp-8], r10d
-    mov r10d, [rbp-8]
+    mov r10d, dword [rbp-8]
     mov dword [rbp-48], r10d
-    mov r11d, [rbp-48]
-    imul r11d, [rbp-8]
+    mov r11d, dword [rbp-48]
+    imul r11d, dword [rbp-8]
     mov dword [rbp-48], r11d
-    mov r10d, [rbp-4]
+    mov r10d, dword [rbp-4]
     mov dword [rbp-52], r10d
-    mov r10d, [rbp-52]
-    add r10d, [rbp-48]
+    mov r10d, dword [rbp-52]
+    add r10d, dword [rbp-48]
     mov dword [rbp-52], r10d
-    mov r10d, [rbp-52]
+    mov r10d, dword [rbp-52]
     mov dword [rbp-4], r10d
-    mov r10d, [rbp-8]
+    mov r10d, dword [rbp-8]
     mov dword [rbp-56], r10d
     add dword [rbp-56], 1
-    mov r10d, [rbp-56]
+    mov r10d, dword [rbp-56]
     mov dword [rbp-8], r10d
-    mov r10d, [rbp-8]
+    mov r10d, dword [rbp-8]
     mov dword [rbp-60], r10d
-    mov r11d, [rbp-60]
-    imul r11d, [rbp-8]
+    mov r11d, dword [rbp-60]
+    imul r11d, dword [rbp-8]
     mov dword [rbp-60], r11d
-    mov r10d, [rbp-4]
+    mov r10d, dword [rbp-4]
     mov dword [rbp-64], r10d
-    mov r10d, [rbp-64]
-    add r10d, [rbp-60]
+    mov r10d, dword [rbp-64]
+    add r10d, dword [rbp-60]
     mov dword [rbp-64], r10d
-    mov r10d, [rbp-64]
+    mov r10d, dword [rbp-64]
     mov dword [rbp-4], r10d
-    mov eax, [rbp-4]
+    mov r10d, dword [rbp-8]
+    mov dword [rbp-68], r10d
+    add dword [rbp-68], 1
+    mov r10d, dword [rbp-68]
+    mov dword [rbp-8], r10d
+    mov r10d, dword [rbp-8]
+    mov dword [rbp-72], r10d
+    mov r11d, dword [rbp-72]
+    imul r11d, dword [rbp-8]
+    mov dword [rbp-72], r11d
+    mov r10d, dword [rbp-4]
+    mov dword [rbp-76], r10d
+    mov r10d, dword [rbp-76]
+    add r10d, dword [rbp-72]
+    mov dword [rbp-76], r10d
+    mov r10d, dword [rbp-76]
+    mov dword [rbp-4], r10d
+    mov r10d, dword [rbp-8]
+    mov dword [rbp-80], r10d
+    add dword [rbp-80], 1
+    mov r10d, dword [rbp-80]
+    mov dword [rbp-8], r10d
+    mov r10d, dword [rbp-8]
+    mov dword [rbp-84], r10d
+    mov r11d, dword [rbp-84]
+    imul r11d, dword [rbp-8]
+    mov dword [rbp-84], r11d
+    mov r10d, dword [rbp-4]
+    mov dword [rbp-88], r10d
+    mov r10d, dword [rbp-88]
+    add r10d, dword [rbp-84]
+    mov dword [rbp-88], r10d
+    mov r10d, dword [rbp-88]
+    mov dword [rbp-4], r10d
+    mov r10d, dword [rbp-8]
+    mov dword [rbp-92], r10d
+    add dword [rbp-92], 1
+    mov r10d, dword [rbp-92]
+    mov dword [rbp-8], r10d
+    mov r10d, dword [rbp-8]
+    mov dword [rbp-96], r10d
+    mov r11d, dword [rbp-96]
+    imul r11d, dword [rbp-8]
+    mov dword [rbp-96], r11d
+    mov r10d, dword [rbp-4]
+    mov dword [rbp-100], r10d
+    mov r10d, dword [rbp-100]
+    add r10d, dword [rbp-96]
+    mov dword [rbp-100], r10d
+    mov r10d, dword [rbp-100]
+    mov dword [rbp-4], r10d
+    mov r10d, dword [rbp-8]
+    mov dword [rbp-104], r10d
+    add dword [rbp-104], 1
+    mov r10d, dword [rbp-104]
+    mov dword [rbp-8], r10d
+    mov r10d, dword [rbp-8]
+    mov dword [rbp-108], r10d
+    mov r11d, dword [rbp-108]
+    imul r11d, dword [rbp-8]
+    mov dword [rbp-108], r11d
+    mov r10d, dword [rbp-4]
+    mov dword [rbp-112], r10d
+    mov r10d, dword [rbp-112]
+    add r10d, dword [rbp-108]
+    mov dword [rbp-112], r10d
+    mov r10d, dword [rbp-112]
+    mov dword [rbp-4], r10d
+    mov r10d, dword [rbp-8]
+    mov dword [rbp-116], r10d
+    add dword [rbp-116], 1
+    mov r10d, dword [rbp-116]
+    mov dword [rbp-8], r10d
+    mov r10d, dword [rbp-8]
+    mov dword [rbp-120], r10d
+    mov r11d, dword [rbp-120]
+    imul r11d, dword [rbp-8]
+    mov dword [rbp-120], r11d
+    mov r10d, dword [rbp-4]
+    mov dword [rbp-124], r10d
+    mov r10d, dword [rbp-124]
+    add r10d, dword [rbp-120]
+    mov dword [rbp-124], r10d
+    mov r10d, dword [rbp-124]
+    mov dword [rbp-4], r10d
+    mov r10d, dword [rbp-8]
+    mov dword [rbp-128], r10d
+    add dword [rbp-128], 1
+    mov r10d, dword [rbp-128]
+    mov dword [rbp-8], r10d
+    mov r10d, dword [rbp-8]
+    mov dword [rbp-132], r10d
+    mov r11d, dword [rbp-132]
+    imul r11d, dword [rbp-8]
+    mov dword [rbp-132], r11d
+    mov r10d, dword [rbp-4]
+    mov dword [rbp-136], r10d
+    mov r10d, dword [rbp-136]
+    add r10d, dword [rbp-132]
+    mov dword [rbp-136], r10d
+    mov r10d, dword [rbp-136]
+    mov dword [rbp-4], r10d
+    mov r10d, dword [rbp-8]
+    mov dword [rbp-140], r10d
+    add dword [rbp-140], 1
+    mov r10d, dword [rbp-140]
+    mov dword [rbp-8], r10d
+    mov r10d, dword [rbp-8]
+    mov dword [rbp-144], r10d
+    mov r11d, dword [rbp-144]
+    imul r11d, dword [rbp-8]
+    mov dword [rbp-144], r11d
+    mov r10d, dword [rbp-4]
+    mov dword [rbp-148], r10d
+    mov r10d, dword [rbp-148]
+    add r10d, dword [rbp-144]
+    mov dword [rbp-148], r10d
+    mov r10d, dword [rbp-148]
+    mov dword [rbp-4], r10d
+    mov r10d, dword [rbp-8]
+    mov dword [rbp-152], r10d
+    add dword [rbp-152], 1
+    mov r10d, dword [rbp-152]
+    mov dword [rbp-8], r10d
+    mov r10d, dword [rbp-8]
+    mov dword [rbp-156], r10d
+    mov r11d, dword [rbp-156]
+    imul r11d, dword [rbp-8]
+    mov dword [rbp-156], r11d
+    mov r10d, dword [rbp-4]
+    mov dword [rbp-160], r10d
+    mov r10d, dword [rbp-160]
+    add r10d, dword [rbp-156]
+    mov dword [rbp-160], r10d
+    mov r10d, dword [rbp-160]
+    mov dword [rbp-4], r10d
+    mov eax, dword [rbp-4]
     mov rsp, rbp
     pop rbp
-    ret
+    
+    mov edi, eax
+    mov eax, 60
+    syscall

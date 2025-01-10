@@ -189,14 +189,17 @@ bool emit_mov_instruction(asm_instruction_t *instruction, FILE *output_file)
         break;
     }
 
-    bool needs_size_specifier = (dst->type == OPERAND_STACK || src->type == OPERAND_STACK);
-
-    if (needs_size_specifier)
+    if (dst->type == OPERAND_STACK)
     {
-        if (fprintf(output_file, "    mov %s%s, %s\n",
-                    dst->type == OPERAND_STACK ? "dword " : "",
-                    dst_str,
-                    src->type == OPERAND_STACK ? "dword " : "") < 0)
+        if (fprintf(output_file, "    mov dword %s, %s\n", dst_str, src_str) < 0)
+        {
+            fprintf(stderr, "Error writing mov instruction\n");
+            return false;
+        }
+    }
+    else if (src->type == OPERAND_STACK)
+    {
+        if (fprintf(output_file, "    mov %s, dword %s\n", dst_str, src_str) < 0)
         {
             fprintf(stderr, "Error writing mov instruction\n");
             return false;
@@ -406,11 +409,18 @@ bool emit_binary_instruction(asm_instruction_t *asm_instruction, FILE *output_fi
         return true;
     }
 
-    bool needs_dword = (first_operand->type == OPERAND_STACK || second_operand->type == OPERAND_STACK);
-
-    if (needs_dword)
+    // For binary operations, place dword before the memory operand if present
+    if (first_operand->type == OPERAND_STACK)
     {
         if (fprintf(output_file, "    %s dword %s, %s\n", op_str, first_str, second_str) < 0)
+        {
+            fprintf(stderr, "Error writing binary instruction\n");
+            return false;
+        }
+    }
+    else if (second_operand->type == OPERAND_STACK)
+    {
+        if (fprintf(output_file, "    %s %s, dword %s\n", op_str, first_str, second_str) < 0)
         {
             fprintf(stderr, "Error writing binary instruction\n");
             return false;
@@ -683,6 +693,14 @@ bool emit_cmp_instruction(asm_instruction_t *instruction, FILE *output_file)
     if (first_operand->type == OPERAND_STACK)
     {
         if (fprintf(output_file, "    cmp dword %s, %s\n", first_str, second_str) < 0)
+        {
+            fprintf(stderr, "Error writing compare instruction\n");
+            return false;
+        }
+    }
+    else if (second_operand->type == OPERAND_STACK)
+    {
+        if (fprintf(output_file, "    cmp %s, dword %s\n", first_str, second_str) < 0)
         {
             fprintf(stderr, "Error writing compare instruction\n");
             return false;
